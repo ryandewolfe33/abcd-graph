@@ -7,7 +7,6 @@ from abcd_graph.graph import ABCDGraph
 from abcd_graph.params import ABCDParams
 from abcd_graph.models import Model
 
-
 __all__ = ["ABCD"]
 
 
@@ -29,7 +28,7 @@ class ABCD:
     beta: float, default=1.5
         Powerlaw exponent for the community size distribution. Not used if a custom
         community_size_sequence is passed.
-    
+
     xi: float, default=0.25
         Proportion of edges in the global background graph. Setting xi=0 gives disjoint communities
         while xi=1 gives a random graph with no community structure.
@@ -45,24 +44,25 @@ class ABCD:
 
     max_community_size: int, default=250
         Maximum community size. Not used if a custom community_size_sequence is passed.
-        
+
     degree_sequence : Sequence[int] | NDArray[np.int64] | None, default=None
         Used to pass a custom degree sequence that overrides the default powerlaw distribution.
-    
+
     community_size_sequence : Sequence[int] | NDArray[np.int64] | None, default=None
         Used to pass a custom community size sequence that overrides the default powerlaw distribution.
         The sum of the community sizes must equal the number of vertices minus the number of outliers.
-    
+
     num_outliers : int, default=0
         The number of outliers. These vertices have their entire degree in the global background graph
         so do not appear in any community.
-    
+
     model : Model | None, default=None
         Random graph model used to sample the community and background graphs.
-    
+
     verbose : bool, default=False
         Flag to log runtime infomation.
     """
+
     def __init__(
         self,
         vcount: int,
@@ -92,13 +92,13 @@ class ABCD:
         self.num_outliers = num_outliers
         self.model = model
         self.verbose = verbose
-    
+
     def sample(self, callbacks: list[ABCDCallback] | None = None) -> ABCDGraph:
         """Sample an ABCD graph. Calling sample multiple times will overwrite the
         self.graph_ object."""
         self.params_ = ABCDParams(
             self.vcount,
-            self.gamma  if self.degree_sequence is None else None,
+            self.gamma if self.degree_sequence is None else None,
             self.beta if self.community_size_sequence is None else None,
             self.xi,
             self.min_degree if self.degree_sequence is None else None,
@@ -112,8 +112,8 @@ class ABCD:
 
         self.graph_ = ABCDGraph(
             self.params_,
-            logger = self.verbose,
-            callbacks = callbacks,
+            logger=self.verbose,
+            callbacks=callbacks,
         )
 
         self.graph_.build(self.model)
