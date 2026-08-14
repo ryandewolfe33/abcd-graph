@@ -3,7 +3,6 @@ from typing import Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-
 from abcd_graph.callbacks.abstract import ABCDCallback
 from abcd_graph.graph import ABCDGraph
 from abcd_graph.models import Model
