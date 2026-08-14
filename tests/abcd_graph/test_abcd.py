@@ -1,4 +1,3 @@
-import pytest
 from abcd_graph import ABCD
 from tests.utils import assert_graph_built
 
