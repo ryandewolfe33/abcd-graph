@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 from abcd_graph.graph import (
-    ABCDGraph,
     ABCD
+    ABCDGraph,
 )
 from abcd_graph.params import ABCDParams
