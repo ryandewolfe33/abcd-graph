@@ -8,6 +8,28 @@ from numpy.random import Generator
 from numpy.typing import NDArray
 
 
+def chunglu_model(
+    node_ids: NDArray[np.uint32], degrees: NDArray[np.integer[Any]], rng: Generator
+) -> NDArray[np.uint32]:
+    """Sample a random graph with, on expectation, the given degree sequence.
+
+    Parameters
+    ----------
+    node_ids: NDArray[np.uint32]
+        List of node_ids for the graph. The returned edge list will contain each
+        node_id equal to it's degree
+
+    degrees: NDArray[np.integer[Any]]
+        List of degrees. The value degrees[i] corresponds to the degree of node node_ids[i]
+
+    rng: Generator
+        numpy.random.Generator object used for randomness.
+    """
+    node_probs = degrees / degrees.sum()
+    edges = rng.choice(node_ids, size=np.sum(degrees), p=node_probs).reshape(-1, 2)
+    return edges
+
+
 def configuration_model(
     node_ids: NDArray[np.uint32], degrees: NDArray[np.integer[Any]], rng: Generator
 ) -> NDArray[np.uint32]:
@@ -15,7 +37,6 @@ def configuration_model(
 
     Parameters
     ----------
-
     node_ids: NDArray[np.uint32]
         List of node_ids for the graph. The returned edge list will contain each
         node_id equal to it's degree

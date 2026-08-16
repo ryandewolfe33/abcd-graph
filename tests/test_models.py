@@ -3,7 +3,7 @@ import pytest
 import scipy.sparse as sp
 from numpy.typing import NDArray
 
-from abcd_graph.models import configuration_model, rewire
+from abcd_graph.models import chunglu_model, configuration_model, rewire
 
 
 def assert_no_bad_edges(edges: NDArray[np.uint32]):
@@ -14,6 +14,19 @@ def assert_no_bad_edges(edges: NDArray[np.uint32]):
     )
     assert np.all(adjacency_matrix.diagonal() == 0)
     assert np.all(adjacency_matrix.data == 1)
+
+
+def test_chunglu_model():
+    rng = np.random.default_rng(seed=1)
+    node_ids = np.arange(32, dtype=np.uint32)
+    degrees = np.full(32, 4, dtype=np.int64)
+
+    edges = chunglu_model(node_ids, degrees, rng)
+
+    ids, counts = np.unique(edges, return_counts=True)
+    assert set(ids).issubset(set(node_ids))
+    assert edges.dtype == np.uint32
+    assert edges.shape == (64, 2)
 
 
 def test_configuration_model():
@@ -27,6 +40,7 @@ def test_configuration_model():
     assert set(ids) == set(node_ids)
     assert np.all(counts == 4)
     assert edges.dtype == np.uint32
+    assert edges.shape == (64, 2)
 
 
 def test_rewire_loops():
