@@ -7,20 +7,21 @@ from numpy.typing import NDArray
 
 @njit(cache=True)
 def _split_community_degree(
-    community_degrees: NDArray[np.uint32],
+    degrees: NDArray[np.uint32],
     background_degrees: NDArray[np.uint32],
     indptr: NDArray[np.uint64],
     data: NDArray[np.uint32],
     rng: Generator,
 ) -> None:
-    for i in range(len(community_degrees)):
+    for i in range(len(degrees)):
         n_coms = indptr[i + 1] - indptr[i]
         if n_coms == 0:
-            background_degrees[i] += community_degrees[i]
+            background_degrees[i] = degrees[i]
             continue
-        min_degree = int(community_degrees[i] / n_coms)
+        community_degree = degrees[i] - background_degrees[i]
+        min_degree = int(community_degree / n_coms)
         data[indptr[i] : indptr[i + 1]] = min_degree
-        n_to_add = community_degrees[i] - min_degree * n_coms
+        n_to_add = community_degree - min_degree * n_coms
         if n_to_add > 0:
             random_numbers = rng.uniform(size=n_coms)
             add_indices = np.argsort(random_numbers)[:n_to_add]
@@ -96,7 +97,7 @@ def split_degrees(
     community_degrees = membership_matrix.copy().astype(np.uint32)
     community_degrees = community_degrees.tocsc()
     _split_community_degree(
-        degrees - background_degrees,
+        degrees,
         background_degrees,
         community_degrees.indptr,
         community_degrees.data,
@@ -110,7 +111,7 @@ def split_degrees(
         background_degrees,
         rng,
     )
-    return community_degrees.tocsr(), background_degrees
+    return community_degrees, background_degrees
 
 
 def _assign_outlier_degrees(
