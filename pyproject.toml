@@ -1,16 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "abcd-graph"
 version = "0.5.0"
-readme = "README.md"
 description = "A python library for generating ABCD graphs."
 authors = [
     { name = "Aleksander Wojnarowicz", email = "alwojnarowicz@gmail.com" },
     { name = "Jordan Barrett" }
 ]
+keywords = ["community detection", "graph clustering", "benchmark", "evaluation", "random graphs"]
+readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+license-files = "LICENSE"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+Homepage = "https://github.com/AleksanderWWW/abcd-graph"
+Repository = "https://github.com/AleksanderWWW/abcd-graph"
+
 packages = [{include = "abcd_graph", from = "src"}]
-repository = "https://github.com/AleksanderWWW/abcd-graph"
+
+requires-python = ">=3.12"
 dependencies = [
     "numba>=0.66.0",
     "numpy>=2.0.0",
@@ -25,16 +45,11 @@ dev = [
     "pytest-cov>=6.0.0",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [tool.pytest.ini_options]
 addopts = ["--strict-markers"]
 markers = [
     "integration: marks tests using external dependencies"
 ]
-
 
 [tool.black]
 line-length = 88
