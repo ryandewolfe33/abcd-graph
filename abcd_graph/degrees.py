@@ -29,26 +29,34 @@ def _split_community_degree(
                 data[j] += 1
 
 
+@njit(cache=True)
 def make_community_degree_sums_even(
-    community_degrees: sp.csr_array,
+    community_degrees_indptr: NDArray,
+    community_degrees_indices: NDArray,
+    community_degrees_data: NDArray,
     background_degrees: NDArray[np.uint32],
     rng: Generator,
 ):
-    community_degree_sums = community_degrees.sum(axis=1)
-    odd_coms = np.where(community_degree_sums % 2 != 0)[0]
-    for com in odd_coms:
-        com_members = community_degrees.indices[
-            community_degrees.indptr[com] : community_degrees.indptr[com + 1]
+    for com in range(len(community_degrees_indptr) - 1):
+        com_members = community_degrees_indices[
+            community_degrees_indptr[com] : community_degrees_indptr[com + 1]
         ]
-        com_degrees = community_degrees.data[
-            community_degrees.indptr[com] : community_degrees.indptr[com + 1]
+        com_degrees = community_degrees_data[
+            community_degrees_indptr[com] : community_degrees_indptr[com + 1]
         ]
-        indices_of_max_degree = com_members[
-            np.where(com_degrees == np.max(com_degrees))[0]
+        print("Com", com, "degrees", com_degrees)
+        if np.sum(com_degrees.astype(np.uint64)) % 2 == 0:
+            continue
+
+        print("Fixing com", com)
+        indices_of_max_degree = np.where(com_degrees == np.max(com_degrees))[0]
+        print("Max degree indices", indices_of_max_degree)
+        decrease_index = indices_of_max_degree[
+            rng.integers(0, len(indices_of_max_degree))
         ]
-        decrease_index = rng.choice(indices_of_max_degree)
-        community_degrees[com, decrease_index] -= 1
-        background_degrees[decrease_index] += 1
+        print("Decreasing index", decrease_index)
+        community_degrees_data[community_degrees_indptr[com] + decrease_index] -= 1
+        background_degrees[com_members[decrease_index]] += 1
 
 
 def split_degrees(
@@ -100,7 +108,17 @@ def split_degrees(
         rng,
     )
     community_degrees = community_degrees.tocsr()
-    make_community_degree_sums_even(community_degrees, background_degrees, rng)
+    print(community_degrees.todense())
+    print(community_degrees.sum(axis=1))
+    make_community_degree_sums_even(
+        community_degrees.indptr,
+        community_degrees.indices,
+        community_degrees.data,
+        background_degrees,
+        rng,
+    )
+    print(community_degrees.todense())
+    print(community_degrees.sum(axis=1))
     return community_degrees.tocsr(), background_degrees
 
 

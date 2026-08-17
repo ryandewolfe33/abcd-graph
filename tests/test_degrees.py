@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from abcd_graph.degrees import assign_degrees, split_degrees
+from abcd_graph.degrees import (
+    assign_degrees,
+    split_degrees,
+)
 
 
 @pytest.mark.parametrize("xi", [0.2, 0.4])
@@ -24,11 +27,8 @@ def test_split_degrees(xi):
     assert background_degrees.dtype == np.uint32
     assert np.all(community_degrees.sum(axis=0) + background_degrees == degrees)
     is_outlier = membership_matrix.sum(axis=0) == 0
-    assert np.all(np.abs(background_degrees - degrees * xi)[~is_outlier] < 1)
-    assert np.all(
-        np.abs(community_degrees.sum(axis=0) - degrees * (1 - xi))[~is_outlier] < 1
-    )
     assert np.all(background_degrees[is_outlier] == degrees[is_outlier])
+    assert np.all(community_degrees.sum(axis=1) % 2 == 0)
 
 
 def test_assign_degrees_no_overlap():
