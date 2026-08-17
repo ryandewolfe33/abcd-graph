@@ -319,9 +319,7 @@ class ABCD:
             self.xi,
             self.rng,
         )
-
-        print("CDS", community_degrees.sum(axis=1))
-
+        
         # TODO Parallel
         if self.model == "configuration":
             model_func = configuration_model

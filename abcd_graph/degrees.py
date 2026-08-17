@@ -44,17 +44,12 @@ def make_community_degree_sums_even(
         com_degrees = community_degrees_data[
             community_degrees_indptr[com] : community_degrees_indptr[com + 1]
         ]
-        print("Com", com, "degrees", com_degrees)
         if np.sum(com_degrees.astype(np.uint64)) % 2 == 0:
             continue
-
-        print("Fixing com", com)
         indices_of_max_degree = np.where(com_degrees == np.max(com_degrees))[0]
-        print("Max degree indices", indices_of_max_degree)
         decrease_index = indices_of_max_degree[
             rng.integers(0, len(indices_of_max_degree))
         ]
-        print("Decreasing index", decrease_index)
         community_degrees_data[community_degrees_indptr[com] + decrease_index] -= 1
         background_degrees[com_members[decrease_index]] += 1
 
@@ -108,8 +103,6 @@ def split_degrees(
         rng,
     )
     community_degrees = community_degrees.tocsr()
-    print(community_degrees.todense())
-    print(community_degrees.sum(axis=1))
     make_community_degree_sums_even(
         community_degrees.indptr,
         community_degrees.indices,
@@ -117,8 +110,6 @@ def split_degrees(
         background_degrees,
         rng,
     )
-    print(community_degrees.todense())
-    print(community_degrees.sum(axis=1))
     return community_degrees.tocsr(), background_degrees
 
 
