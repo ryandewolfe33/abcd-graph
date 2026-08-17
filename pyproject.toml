@@ -66,6 +66,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by black)
+    "B008", # Do not perform function call in defaults
 ]
 
 [tool.ruff.lint.per-file-ignores]
