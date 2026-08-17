@@ -60,11 +60,19 @@ def fix_community_sizes(
         else:
             increase_amount = community_sizes[-1] - decrease_amount
             community_sizes = community_sizes[:-1]
-            increasable_indices = np.where(community_sizes < max_community_size)[0]
-            indices_to_increase = rng.choice(
-                increasable_indices, size=increase_amount, replace=False
-            )
-            community_sizes[indices_to_increase] += 1
+            while increase_amount > 0:
+                increasable_indices = np.where(community_sizes < max_community_size)[0]
+                if len(increasable_indices) == 0:
+                    raise ValueError(
+                        "Stuck fixing community sizes. This is likely caused by a too large min_community_size."
+                    )
+                n_to_increase = min(increase_amount, len(increasable_indices))
+                indices_to_increase = rng.choice(
+                    increasable_indices, size=n_to_increase, replace=False
+                )
+                community_sizes[indices_to_increase] += 1
+                increase_amount -= n_to_increase
+
     return community_sizes
 
 
