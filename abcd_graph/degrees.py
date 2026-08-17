@@ -29,6 +29,28 @@ def _split_community_degree(
                 data[j] += 1
 
 
+def make_community_degree_sums_even(
+    community_degrees: sp.csr_array,
+    background_degrees: NDArray[np.uint32],
+    rng: Generator,
+):
+    community_degree_sums = community_degrees.sum(axis=1)
+    odd_coms = np.where(community_degree_sums % 2 != 0)[0]
+    for com in odd_coms:
+        com_members = community_degrees.indices[
+            community_degrees.indptr[com] : community_degrees.indptr[com + 1]
+        ]
+        com_degrees = community_degrees.data[
+            community_degrees.indptr[com] : community_degrees.indptr[com + 1]
+        ]
+        indices_of_max_degree = com_members[
+            np.where(com_degrees == np.max(com_degrees))[0]
+        ]
+        decrease_index = rng.choice(indices_of_max_degree)
+        community_degrees[com, decrease_index] -= 1
+        background_degrees[decrease_index] += 1
+
+
 def split_degrees(
     degrees: NDArray[np.uint32],
     membership_matrix: sp.csr_array,
@@ -77,7 +99,8 @@ def split_degrees(
         community_degrees.data,
         rng,
     )
-
+    community_degrees = community_degrees.tocsr()
+    make_community_degree_sums_even(community_degrees, background_degrees, rng)
     return community_degrees.tocsr(), background_degrees
 
 
