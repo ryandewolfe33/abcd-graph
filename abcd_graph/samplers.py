@@ -15,6 +15,10 @@ def sample_degrees(
     probs = options.astype(np.float32) ** -degree_exponent
     probs /= np.sum(probs)
     degrees = rng.choice(options, p=probs, size=n)
+    if np.sum(degrees) % 2 == 1:
+        max_indices = np.where(degrees == np.max(degrees))[0]
+        index_to_decrease = rng.choice(max_indices)
+        degrees[index_to_decrease] -= 1
     return degrees
 
 
