@@ -1,5 +1,13 @@
 name: unit tests
-on: [push]
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
+  pull-request:
+    branches:
+      - 'main'
+      - 'release/**'
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -8,9 +16,9 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
