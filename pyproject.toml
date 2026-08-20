@@ -13,7 +13,7 @@ authors = [
 keywords = ["community detection", "graph clustering", "benchmark", "evaluation", "random graphs"]
 readme = "README.md"
 license = "MIT"
-license-files = "LICENSE"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3.12",
