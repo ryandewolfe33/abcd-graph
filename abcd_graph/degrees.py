@@ -23,11 +23,10 @@ def _split_community_degree(
         data[indptr[i] : indptr[i + 1]] = min_degree
         n_to_add = community_degree - min_degree * n_coms
         if n_to_add > 0:
-            random_numbers = rng.uniform(size=n_coms)
-            add_indices = np.argsort(random_numbers)[:n_to_add]
-            add_indices += indptr[i]
-            for j in add_indices:
-                data[j] += 1
+            indices = np.arange(indptr[i],indptr[i+1])
+            rng.shuffle(indices)
+            for i in range(n_to_add):
+                data[indices[i]] += 1
 
 
 @njit(cache=True)
