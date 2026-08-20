@@ -30,8 +30,9 @@ def chunglu_model(
     return edges
 
 
+@njit
 def configuration_model(
-    node_ids: NDArray[np.uint32], degrees: NDArray[np.integer[Any]], rng: Generator
+    node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
 ) -> NDArray[np.uint32]:
     """Sample a random graph with the given degree sequence.
 
@@ -47,10 +48,10 @@ def configuration_model(
     rng: Generator
         numpy.random.Generator object used for randomness.
     """
-    node_ids = np.arange(len(degrees), dtype="uint32")
+    node_ids = np.arange(len(degrees), dtype=np.uint32)
     stubs = np.repeat(node_ids, degrees)
     rng.shuffle(stubs)
-    edges = np.array(stubs).reshape(-1, 2)
+    edges = stubs.reshape(-1, 2)
     return edges
 
 
