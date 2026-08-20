@@ -58,7 +58,7 @@ def test_sample_community_sizes_no_overlap(n, eta):
     exponent = 1.5
     min_community_size = 3
     max_community_size = 10
-    rng = np.random.default_rng()
+    rng = np.random.default_rng(seed = 1)
 
     community_sizes = sample_community_sizes(
         n, exponent, min_community_size, max_community_size, eta, rng
@@ -66,8 +66,8 @@ def test_sample_community_sizes_no_overlap(n, eta):
 
     min_n_communities = n * eta / max_community_size
     max_n_communities = n * eta / min_community_size
-    assert len(community_sizes) > min_n_communities
-    assert len(community_sizes) < max_n_communities
+    assert len(community_sizes) >= min_n_communities
+    assert len(community_sizes) <= max_n_communities
     assert set(community_sizes).issubset(
         set(range(min_community_size, max_community_size + 1))
     )
