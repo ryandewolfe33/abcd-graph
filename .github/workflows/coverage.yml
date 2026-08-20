@@ -1,23 +1,24 @@
 name: coverage
 on: [push]
 jobs:
-    test:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v7
+  if: github.repository == 'AleksanderWWW/abcd-graph'
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
 
-        - uses: actions/setup-python@v7
-          with:
-            python-version: "3.12"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
 
-        - name: Build
-          uses: ./.github/actions/build
+      - name: Build
+        uses: ./.github/actions/build
 
-        - name: Test
-          uses: ./.github/actions/test
+      - name: Test
+        uses: ./.github/actions/test
 
-        - name: Pytest coverage comment
-          uses: MishaKav/pytest-coverage-comment@main
-          with:
-            pytest-coverage-path: ./pytest-coverage.txt
-            junitxml-path: ./pytest.xml
+      - name: Pytest coverage comment
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
