@@ -24,12 +24,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 
-[project.urls]
-Homepage = "https://github.com/AleksanderWWW/abcd-graph"
-Repository = "https://github.com/AleksanderWWW/abcd-graph"
-
-packages = ["abcd_graph"]
-
 requires-python = ">=3.12"
 dependencies = [
     "numba>=0.66.0",
@@ -44,6 +38,13 @@ dev = [
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/AleksanderWWW/abcd-graph"
+Repository = "https://github.com/AleksanderWWW/abcd-graph"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers"]
