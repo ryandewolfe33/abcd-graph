@@ -8,8 +8,74 @@ from numpy.typing import ArrayLike, NDArray
 
 from abcd_graph.degrees import assign_degrees, split_degrees
 from abcd_graph.membership import build_membership_matrix
-from abcd_graph.models import chunglu_model, configuration_model, rewire
+from abcd_graph.models import Model, chunglu_model, configuration_model, rewire
 from abcd_graph.samplers import sample_community_sizes, sample_degrees
+
+
+def generate_community_graph_task(
+    i,
+    graph,
+    community_edges_indptr,
+    community_degrees_indptr,
+    community_degrees_indices,
+    community_degrees_data,
+    model,
+    max_swap_attempts_per_bad_edge,
+    rng: Generator,
+) -> None:
+    com_indices = community_degrees_indices[
+        community_degrees_indptr[i] : community_degrees_indptr[i + 1]
+    ]
+    com_data = community_degrees_data[
+        community_degrees_indptr[i] : community_degrees_indptr[i + 1]
+    ]
+    community_graph = model(
+        com_indices,
+        com_data,
+        rng,
+    )
+    rewire(community_graph, rng, max_swap_attempts_per_bad_edge)
+    graph[community_edges_indptr[i] : community_edges_indptr[i + 1]] = community_graph
+
+
+def generate_graph(
+    community_degrees: sp.csr_array,
+    background_degrees: NDArray[np.uint32],
+    model: Model,
+    max_swap_attempts_per_bad_edge: int,
+    rng: Generator,
+):
+    # Add background degrees as the last community
+    community_degrees = sp.vstack(
+        (community_degrees, sp.csr_array(background_degrees)), format="csr"
+    )
+    # Sort communities by volume decreasing
+    community_m = community_degrees.sum(axis=1) // 2
+    argsort_community_m = np.argsort(community_m)[::-1]
+    community_degrees = community_degrees[argsort_community_m]
+
+    community_edges_indptr = np.cumsum(community_m[argsort_community_m])
+    community_edges_indptr = np.insert(community_edges_indptr, 0, 0)
+
+    graph = np.empty((community_edges_indptr[-1], 2), dtype=np.uint32)
+    n_coms = community_degrees.shape[0]
+    rngs = rng.spawn(n_coms)
+    # TODO Parallel this loop
+    for i in range(n_coms):
+        generate_community_graph_task(
+            i,
+            graph,
+            community_edges_indptr,
+            community_degrees.indptr,
+            community_degrees.indices,
+            community_degrees.data,
+            model,
+            max_swap_attempts_per_bad_edge,
+            rngs[i],
+        )
+    n_good_edges = rewire(graph, rng, max_swap_attempts_per_bad_edge)
+    graph.resize((n_good_edges, 2), refcheck=False)
+    return graph
 
 
 class ABCD:
@@ -93,7 +159,6 @@ class ABCD:
         alpha_iters: int = 10,
         model: str = "configuration",
         max_swap_attempts_per_bad_edge: int = 5,
-        drop_collisions: bool = False,
         rng: Generator = np.random.default_rng(),
         verbose: bool = False,
     ):
@@ -117,7 +182,6 @@ class ABCD:
         self.rho_tol = rho_tol
         self.model = model
         self.max_swap_attempts_per_bad_edge = max_swap_attempts_per_bad_edge
-        self.drop_collisions = drop_collisions
         self.rng = rng
         self.verbose = verbose
 
@@ -250,9 +314,6 @@ class ABCD:
                 "max swap attempts per bad edge must a be positive integer"
             )
 
-        if not isinstance(self.drop_collisions, (bool, np.bool)):
-            raise ValueError("drop collisions must be True or False")
-
         if not isinstance(self.rng, np.random.Generator):
             raise ValueError("rng must be a numpy.random.Generator object")
 
@@ -320,7 +381,6 @@ class ABCD:
             self.rng,
         )
 
-        # TODO Parallel
         if self.model == "configuration":
             model_func = configuration_model
         elif self.model == "chung-lu":
@@ -328,38 +388,12 @@ class ABCD:
         else:
             raise ValueError("model should be one of 'configuration' or 'chung-lu")
 
-        graphs = [
-            model_func(
-                community_degrees.indices[
-                    community_degrees.indptr[i] : community_degrees.indptr[i + 1]
-                ],
-                community_degrees.data[
-                    community_degrees.indptr[i] : community_degrees.indptr[i + 1]
-                ],
-                self.rng,
-            )
-            for i in range(community_degrees.shape[0])
-        ]
-        graphs.append(
-            model_func(
-                np.arange(self.n, dtype=np.uint32),
-                background_degrees,
-                self.rng,
-            )
-        )
-        graphs = [
-            rewire(
-                g, self.rng, self.max_swap_attempts_per_bad_edge, self.drop_collisions
-            )
-            for g in graphs
-        ]
-
-        self.graph_ = np.vstack(graphs)
-        self.graph_ = rewire(
-            self.graph_,
-            self.rng,
+        self.graph_ = generate_graph(
+            community_degrees,
+            background_degrees,
+            model_func,
             self.max_swap_attempts_per_bad_edge,
-            self.drop_collisions,
+            self.rng,
         )
 
         return self.graph_, self.membership_matrix_
