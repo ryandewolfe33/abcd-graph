@@ -1,3 +1,5 @@
+import logging
+import sys
 from collections.abc import Callable
 from time import perf_counter
 from warnings import warn
@@ -57,7 +59,7 @@ def generate_graph(
     model: Model,
     max_swap_attempts_per_bad_edge: int,
     rng: Generator,
-    verbose: bool = False,
+    logger: logging.Logger,
 ):
     # Add background degrees as the last community
     community_degrees = sp.vstack(
@@ -75,9 +77,9 @@ def generate_graph(
     n_coms = community_degrees.shape[0]
     rngs = rng.spawn(n_coms)
     # TODO Parallel this loop
-    if verbose:
-        print("Building Community Graphs")
-    for i in trange(n_coms, disable=not verbose):
+    logger.info("Building Community Graphs")
+    start = perf_counter()
+    for i in trange(n_coms, disable=logger.getEffectiveLevel() > 20):
         generate_community_graph_task(
             i,
             graph,
@@ -89,13 +91,13 @@ def generate_graph(
             max_swap_attempts_per_bad_edge,
             rngs[i],
         )
-    if verbose:
-        print("Global Rewiring")
+    end = perf_counter()
+    logger.info(f"Finished in {format_duration(end - start)}.")
+    logger.info("Global Rewiring")
     start = perf_counter()
     n_good_edges = rewire(graph, rng, max_swap_attempts_per_bad_edge)
     end = perf_counter()
-    if verbose:
-        print(f"Finished in {format_duration(end - start)}.")
+    logger.info(f"Finished in {format_duration(end - start)}.")
     graph.resize((n_good_edges, 2), refcheck=False)
     return graph
 
@@ -155,8 +157,13 @@ class ABCD:
     model : Model | None, default=None
         Random graph model used to sample the community and background graphs.
 
+    logger : Logger | None, default=None
+        Option to pass a custom logging object.
+
     verbose : bool, default=False
-        Flag to log runtime infomation.
+        Only used if logger is not passed. If True, sets the logger level to info and the
+        output to stdout. If False, sets the logger level to warning and the output to
+        stderr.
     """
 
     def __init__(
@@ -182,6 +189,7 @@ class ABCD:
         model: str = "configuration",
         max_swap_attempts_per_bad_edge: int = 5,
         rng: Generator = np.random.default_rng(),
+        logger: logging.Logger | None = None,
         verbose: bool = False,
     ):
         self.n = n
@@ -205,6 +213,7 @@ class ABCD:
         self.model = model
         self.max_swap_attempts_per_bad_edge = max_swap_attempts_per_bad_edge
         self.rng = rng
+        self.logger = logger
         self.verbose = verbose
 
     def _validate_params(self):
@@ -339,15 +348,29 @@ class ABCD:
         if not isinstance(self.rng, np.random.Generator):
             raise ValueError("rng must be a numpy.random.Generator object")
 
-    def _log(self, message: str):
-        # TODO let user pass a logger that gathers messages
+        if self.logger is not None and not isinstance(self.logger, logging.Logger):
+            raise ValueError("logger must be None or a logging.Logger object")
+
+    def _get_logger(self):
+        if self.logger is not None:
+            return self.logger
+        logger = logging.getLogger(__name__)
+        logger.handlers.clear()
         if self.verbose:
-            print(message)
+            logger.setLevel(logging.INFO)
+            handler = logging.StreamHandler(sys.stdout)
+            logger.addHandler(handler)
+        else:
+            logger.setLevel(logging.WARNING)
+            handler = logging.StreamHandler(sys.stderr)
+            logger.addHandler(handler)
+        return logger
 
     def sample(self) -> (NDArray[np.uint32], sp.csr_array):
         sample_start = perf_counter()
 
         self._validate_params()
+        self.logger_ = self._get_logger()
 
         if self.outliers < 1:
             n_outliers = int(self.n * self.outliers)
@@ -355,7 +378,7 @@ class ABCD:
             n_outliers = self.outliers
 
         if self.degree_sequence is None:
-            self._log("Generating Degree Sequence")
+            self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
             self.max_degree_ = (
                 self.max_degree(self.n)
@@ -370,10 +393,10 @@ class ABCD:
                 self.rng,
             )
             end = perf_counter()
-            self._log(f"Finished in {format_duration(end - start)}.")
+            self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
         if self.community_size_sequence is None:
-            self._log("Generating Degree Sequence")
+            self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
             self.max_community_size_ = (
                 self.max_community_size(self.n)
@@ -389,9 +412,9 @@ class ABCD:
                 self.rng,
             )
             end = perf_counter()
-            self._log(f"Finished in {format_duration(end - start)}.")
+            self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
-        self._log("Building Membership Matrix")
+        self.logger_.info("Building Membership Matrix")
         start = perf_counter()
         self.membership_matrix_ = build_membership_matrix(
             self.n,
@@ -401,9 +424,9 @@ class ABCD:
             self.rng,
         )
         end = perf_counter()
-        self._log(f"Finished in {format_duration(end - start)}.")
+        self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
-        self._log("Assigning Degrees")
+        self.logger_.info("Assigning Degrees")
         start = perf_counter()
         assigned_degrees = assign_degrees(
             self.degree_sequence_,
@@ -417,9 +440,9 @@ class ABCD:
             self.alpha_iters,
         )
         end = perf_counter()
-        self._log(f"Finished in {format_duration(end - start)}.")
+        self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
-        self._log("Splitting Degrees")
+        self.logger_.info("Splitting Degrees")
         start = perf_counter()
         community_degrees, background_degrees = split_degrees(
             assigned_degrees,
@@ -428,7 +451,7 @@ class ABCD:
             self.rng,
         )
         end = perf_counter()
-        self._log(f"Finished in {format_duration(end - start)}.")
+        self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
         if self.model == "configuration":
             model_func = configuration_model
@@ -443,10 +466,10 @@ class ABCD:
             model_func,
             self.max_swap_attempts_per_bad_edge,
             self.rng,
-            self.verbose,
+            self.logger_,
         )
         sample_end = perf_counter()
-        self._log(
+        self.logger_.info(
             f"Sampled ABCD graph in {format_duration(sample_end - sample_start)}."
         )
         return self.graph_, self.membership_matrix_
