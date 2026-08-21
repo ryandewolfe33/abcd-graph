@@ -45,11 +45,12 @@ def test_rewire_loops():
         dtype=np.uint32,
     )
 
-    edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, rng)
 
     assert edges.shape == (5, 2)
     assert edges.dtype == np.uint32
     assert_no_bad_edges(edges)
+    assert n_good_edges == edges.shape[0]
 
 
 def test_rewire_multiedges():
@@ -64,22 +65,24 @@ def test_rewire_multiedges():
         dtype=np.uint32,
     )
 
-    edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, rng)
 
     assert edges.shape == (4, 2)
     assert edges.dtype == np.uint32
     assert_no_bad_edges(edges)
+    assert n_good_edges == edges.shape[0]
 
 
 def test_rewire_swap_two_bad_edges():
     rng = np.random.default_rng(seed=1)
     edges = np.array([[0, 0], [1, 2], [1, 2]], dtype=np.uint32)
 
-    edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, rng)
 
     assert edges.shape == (3, 2)
     assert edges.dtype == np.uint32
     assert_no_bad_edges(edges)
+    assert n_good_edges == edges.shape[0]
 
 
 def test_rewire_many():
@@ -89,31 +92,22 @@ def test_rewire_many():
         dtype=np.uint32,
     )
 
-    edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, rng)
 
     assert edges.shape == (8, 2)
     assert edges.dtype == np.uint32
     assert_no_bad_edges(edges)
+    assert n_good_edges == edges.shape[0]
 
 
 def test_rewire_failure():
     rng = np.random.default_rng(seed=1)
     edges = np.array([[0, 0], [0, 1]], dtype=np.uint32)
 
-    edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, rng)
 
     assert edges.shape == (2, 2)
     assert edges.dtype == np.uint32
     with pytest.raises(AssertionError):
         assert_no_bad_edges(edges)
-
-
-def test_rewire_drop_collisions():
-    rng = np.random.default_rng(seed=1)
-    edges = np.array([[0, 0], [0, 1]], dtype=np.uint32)
-
-    edges = rewire(edges, rng, drop_collisions=True)
-
-    assert edges.shape == (1, 2)
-    assert edges.dtype == np.uint32
-    assert_no_bad_edges(edges)
+    assert n_good_edges == 1

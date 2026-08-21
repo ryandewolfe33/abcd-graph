@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 from numba import njit
@@ -6,6 +6,13 @@ from numba.typed import List, Set
 from numba.types import uint64
 from numpy.random import Generator
 from numpy.typing import NDArray
+
+
+# Define the function interface contract structurally
+class Model(Protocol):
+    def __call__(
+        self, node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
+    ) -> NDArray[np.uint32]: ...
 
 
 def chunglu_model(
@@ -30,7 +37,7 @@ def chunglu_model(
     return edges
 
 
-@njit
+@njit(nogil=True)
 def configuration_model(
     node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
 ) -> NDArray[np.uint32]:
@@ -107,13 +114,12 @@ def is_bad_swap(
     return False
 
 
-@njit
+@njit(nogil=True)
 def rewire(
     edges: NDArray[np.uint32],
     rng: Generator,
     max_swap_attempts_per_bad_edge: int = 5,
-    drop_collisions: bool = False,
-) -> NDArray[np.uint32]:
+) -> int:
     """Perform inplace edge swaps to resolve loops and multi-edges.
 
     Parameters
@@ -127,10 +133,6 @@ def rewire(
 
     max_swap_attempts_per_bad_edge: int, default=5
         Cap the attempted edge swaps to this values times the number of initial bad edges.
-
-    drop_collisions: bool, default=False
-        If true, drop any bad edges that failed to swap from the returned array. The returned
-        edge list is guaranteed to be a simple graph.
 
     """
     # Move good edges to the front, add their hashes to a set, and
@@ -203,7 +205,4 @@ def rewire(
         bad_edge = edge_from_id(bad_edge_id)
         edges[n_good_edges + i] = bad_edge
 
-    if drop_collisions:
-        edges = edges[:n_good_edges]
-
-    return edges
+    return n_good_edges
