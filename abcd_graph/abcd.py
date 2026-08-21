@@ -319,7 +319,7 @@ class ABCD:
             self.xi,
             self.rng,
         )
-        
+
         # TODO Parallel
         if self.model == "configuration":
             model_func = configuration_model

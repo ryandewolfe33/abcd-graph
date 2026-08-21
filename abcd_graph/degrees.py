@@ -23,7 +23,7 @@ def _split_community_degree(
         data[indptr[i] : indptr[i + 1]] = min_degree
         n_to_add = community_degree - min_degree * n_coms
         if n_to_add > 0:
-            indices = np.arange(indptr[i],indptr[i+1])
+            indices = np.arange(indptr[i], indptr[i + 1])
             rng.shuffle(indices)
             for i in range(n_to_add):
                 data[indices[i]] += 1
