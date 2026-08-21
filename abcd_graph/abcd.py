@@ -1,15 +1,28 @@
 from collections.abc import Callable
+from time import perf_counter
 from warnings import warn
 
 import numpy as np
 import scipy.sparse as sp
 from numpy.random import Generator
 from numpy.typing import ArrayLike, NDArray
+from tqdm import trange
 
 from abcd_graph.degrees import assign_degrees, split_degrees
 from abcd_graph.membership import build_membership_matrix
 from abcd_graph.models import Model, chunglu_model, configuration_model, rewire
 from abcd_graph.samplers import sample_community_sizes, sample_degrees
+
+
+def format_duration(seconds: float):
+    if seconds >= 1.0:
+        return f"{seconds:.3f}s"
+    elif seconds >= 1e-3:
+        return f"{seconds * 1e3:.3f}ms"
+    elif seconds >= 1e-6:
+        return f"{seconds * 1e6:.3f}µs"
+    else:
+        return f"{seconds * 1e9:.3f}ns"
 
 
 def generate_community_graph_task(
@@ -44,6 +57,7 @@ def generate_graph(
     model: Model,
     max_swap_attempts_per_bad_edge: int,
     rng: Generator,
+    verbose: bool = False,
 ):
     # Add background degrees as the last community
     community_degrees = sp.vstack(
@@ -61,7 +75,9 @@ def generate_graph(
     n_coms = community_degrees.shape[0]
     rngs = rng.spawn(n_coms)
     # TODO Parallel this loop
-    for i in range(n_coms):
+    if verbose:
+        print("Building Community Graphs")
+    for i in trange(n_coms, disable=not verbose):
         generate_community_graph_task(
             i,
             graph,
@@ -73,7 +89,13 @@ def generate_graph(
             max_swap_attempts_per_bad_edge,
             rngs[i],
         )
+    if verbose:
+        print("Global Rewiring")
+    start = perf_counter()
     n_good_edges = rewire(graph, rng, max_swap_attempts_per_bad_edge)
+    end = perf_counter()
+    if verbose:
+        print(f"Finished in {format_duration(end - start)}.")
     graph.resize((n_good_edges, 2), refcheck=False)
     return graph
 
@@ -317,7 +339,14 @@ class ABCD:
         if not isinstance(self.rng, np.random.Generator):
             raise ValueError("rng must be a numpy.random.Generator object")
 
+    def _log(self, message: str):
+        # TODO let user pass a logger that gathers messages
+        if self.verbose:
+            print(message)
+
     def sample(self) -> (NDArray[np.uint32], sp.csr_array):
+        sample_start = perf_counter()
+
         self._validate_params()
 
         if self.outliers < 1:
@@ -326,6 +355,8 @@ class ABCD:
             n_outliers = self.outliers
 
         if self.degree_sequence is None:
+            self._log("Generating Degree Sequence")
+            start = perf_counter()
             self.max_degree_ = (
                 self.max_degree(self.n)
                 if callable(self.max_degree)
@@ -338,8 +369,12 @@ class ABCD:
                 self.max_degree_,
                 self.rng,
             )
+            end = perf_counter()
+            self._log(f"Finished in {format_duration(end - start)}.")
 
         if self.community_size_sequence is None:
+            self._log("Generating Degree Sequence")
+            start = perf_counter()
             self.max_community_size_ = (
                 self.max_community_size(self.n)
                 if callable(self.max_community_size)
@@ -353,7 +388,11 @@ class ABCD:
                 self.eta,
                 self.rng,
             )
+            end = perf_counter()
+            self._log(f"Finished in {format_duration(end - start)}.")
 
+        self._log("Building Membership Matrix")
+        start = perf_counter()
         self.membership_matrix_ = build_membership_matrix(
             self.n,
             self.community_size_sequence_,
@@ -361,7 +400,11 @@ class ABCD:
             self.dimension,
             self.rng,
         )
+        end = perf_counter()
+        self._log(f"Finished in {format_duration(end - start)}.")
 
+        self._log("Assigning Degrees")
+        start = perf_counter()
         assigned_degrees = assign_degrees(
             self.degree_sequence_,
             self.membership_matrix_,
@@ -373,13 +416,19 @@ class ABCD:
             self.alpha_max,
             self.alpha_iters,
         )
+        end = perf_counter()
+        self._log(f"Finished in {format_duration(end - start)}.")
 
+        self._log("Splitting Degrees")
+        start = perf_counter()
         community_degrees, background_degrees = split_degrees(
             assigned_degrees,
             self.membership_matrix_,
             self.xi,
             self.rng,
         )
+        end = perf_counter()
+        self._log(f"Finished in {format_duration(end - start)}.")
 
         if self.model == "configuration":
             model_func = configuration_model
@@ -394,6 +443,10 @@ class ABCD:
             model_func,
             self.max_swap_attempts_per_bad_edge,
             self.rng,
+            self.verbose,
         )
-
+        sample_end = perf_counter()
+        self._log(
+            f"Sampled ABCD graph in {format_duration(sample_end - sample_start)}."
+        )
         return self.graph_, self.membership_matrix_
