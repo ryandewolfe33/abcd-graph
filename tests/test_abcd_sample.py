@@ -19,6 +19,18 @@ def test_xi(sample):
     assert xi == 0.25
 
 
+@pytest.mark.filterwarnings("ignore::UserWarning:powerlaw*")
+def test_degree_exponent(sample):
+    exponent = sample.degree_exponent
+    assert exponent > 0
+
+
+@pytest.mark.filterwarnings("ignore::UserWarning:powerlaw*")
+def test_community_size_exponent(sample):
+    exponent = sample.community_size_exponent
+    assert exponent > 0
+
+
 def test_to_sparse(sample):
     result = sample.to_sparse()
     correct = sp.csr_array(

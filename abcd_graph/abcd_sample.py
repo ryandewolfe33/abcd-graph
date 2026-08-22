@@ -1,4 +1,5 @@
 import numpy as np
+import powerlaw
 import scipy.sparse as sp
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
@@ -81,12 +82,39 @@ class ABCDSample:
         return rho
 
     @property
+    def degree_sequence(self) -> NDArray:
+        degrees = np.zeros(self.n, dtype=np.uint32)
+        node, degree = np.unique_counts(self.edges)
+        degrees[node] = degree
+        return degrees
+
+    @property
+    def degree_exponent(self) -> float:
+        degree_sequence = self.degree_sequence
+        min_degree = np.min(degree_sequence)
+        exponent = powerlaw.Fit(
+            degree_sequence,
+            discrete=True,
+            verbose=False,
+            xmin=min_degree,
+        ).power_law.alpha
+        return exponent
+
+    @property
     def community_size_sequence(self) -> NDArray:
         return self.membership_matrix.sum(axis=1)
 
     @property
-    def degree_sequence(self) -> NDArray:
-        return np.unique_counts(self.edges, sorted=False)[1]
+    def community_size_exponent(self) -> float:
+        size_sequence = self.community_size_sequence
+        min_size = np.min(size_sequence)
+        exponent = powerlaw.Fit(
+            size_sequence,
+            discrete=True,
+            verbose=False,
+            xmin=min_size,
+        ).power_law.alpha
+        return exponent
 
     def to_sparse(self, matrix: bool = False) -> sp.csr_array | sp.csr_matrix:
         adjacency = sp.coo_array(
