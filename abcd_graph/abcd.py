@@ -77,9 +77,10 @@ def generate_graph(
     graph = np.empty((community_edges_indptr[-1], 2), dtype=np.uint32)
     n_coms = community_degrees.shape[0]
     rngs = rng.spawn(n_coms)
-    # TODO Parallel this loop
     logger.info("Building Community Graphs")
     start = perf_counter()
+    # TODO Parallel this loop
+    # TODO logging for this progess bar
     for i in trange(n_coms, disable=logger.getEffectiveLevel() > 20):
         generate_community_graph_task(
             i,
@@ -99,7 +100,11 @@ def generate_graph(
     n_good_edges = rewire(graph, rng, max_swap_attempts_per_bad_edge)
     end = perf_counter()
     logger.info(f"Finished in {format_duration(end - start)}.")
-    graph.resize((n_good_edges, 2), refcheck=False)
+    if graph.shape[0] - n_good_edges:
+        logger.info(
+            f"Failed to rewire {graph.shape[0] - n_good_edges}, they will be removed."
+        )
+        graph.resize((n_good_edges, 2), refcheck=False)
     return graph
 
 

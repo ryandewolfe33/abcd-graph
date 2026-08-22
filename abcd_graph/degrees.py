@@ -142,30 +142,42 @@ def _assign_degrees(
     alpha: float = 0.0,
 ) -> NDArray[np.uint32]:
     assigned_degrees = np.empty_like(degrees)
-    open_nodes = np.arange(len(n_coms), dtype=np.uint32)[n_coms > 0]
+    ids = np.arange(len(degrees), dtype=np.uint32)  # Pre-allocate for where
+    is_open_mask = np.ones_like(assigned_degrees, dtype=np.bool)
     n_coms_exp_alpha = n_coms.astype(np.float64) ** alpha
+    threshold_mask = np.zeros_like(thresholds, dtype=np.bool)
+    last_d = np.iinfo(np.uint32).max  # Degrees are sorted descending
     for d in degrees:
-        allowed_indices = np.where(d <= thresholds[open_nodes])[0]
+        if d < last_d:
+            threshold_mask[thresholds >= d] = True
+            last_d = d
+        # start = time.perf_counter()
+        allowed_indices = ids[is_open_mask & threshold_mask]
         if len(allowed_indices) == 0:
-            allowed_indices = np.where(
-                thresholds[open_nodes] == np.min(thresholds[open_nodes])
-            )[0]
-        allowed_nodes = open_nodes[allowed_indices]
+            min_open_threshold = np.min(thresholds[is_open_mask & ~threshold_mask])
+            allowed_indices = ids[is_open_mask & (thresholds == min_open_threshold)]
+        # end = time.perf_counter()
+        # print(f"Got open indices in {(end - start)* 1e6:.3f}us")
 
-        # Choose an available node proportional to n_coms ** alpha
-        if len(allowed_nodes) > 1:
-            probs = n_coms_exp_alpha[allowed_nodes]
-            probs /= np.sum(probs)
-            cum_prob = np.cumsum(probs)
-            random_value = rng.uniform()
-            chosen_index = np.searchsorted(cum_prob, random_value)
-        else:
-            chosen_index = 0
-        assigned_degrees[allowed_nodes[chosen_index]] = d
+        # Choose an available index proportional to n_coms ** alpha
+        # start = time.perf_counter()
+        chosen_index = 0
+        if len(allowed_indices) > 1:
+            if alpha == 0:
+                chosen_index = rng.integers(0, len(allowed_indices))
+            else:
+                probs = n_coms_exp_alpha[allowed_indices]
+                random_value = rng.uniform()
+                for index, p in enumerate(probs):
+                    random_value -= p
+                    if random_value < 0:
+                        chosen_index = index
+                        break
+        # end = time.perf_counter()
+        # print(f"Chose index in {(end - start)* 1e6:.3f}us")
 
-        # Remove assigned node and shorten list
-        open_nodes[allowed_indices[chosen_index]] = open_nodes[-1]
-        open_nodes = open_nodes[:-1]
+        assigned_degrees[allowed_indices[chosen_index]] = d
+        is_open_mask[allowed_indices[chosen_index]] = False
 
     return assigned_degrees
 
@@ -296,10 +308,10 @@ def assign_degrees(
     community_sizes = membership_matrix.sum(axis=1).astype(
         np.uint32
     )  # size of each community
-    membership_matrix = membership_matrix.tocsc()
     n_coms = membership_matrix.sum(axis=0)  # number of communities per node
     community_size_matrix = (
-        sp.diags_array(community_sizes, dtype=np.uint32) @ membership_matrix
+        sp.diags_array(community_sizes, format="csr", dtype=np.uint32)
+        @ membership_matrix
     )
     min_com_sizes = community_size_matrix.min(axis=0, explicit=True).todense()
 
