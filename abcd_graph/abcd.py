@@ -10,6 +10,7 @@ from numpy.random import Generator
 from numpy.typing import ArrayLike, NDArray
 from tqdm import trange
 
+from abcd_graph.abcd_sample import ABCDSample
 from abcd_graph.degrees import assign_degrees, split_degrees
 from abcd_graph.membership import build_membership_matrix
 from abcd_graph.models import Model, chunglu_model, configuration_model, rewire
@@ -472,4 +473,5 @@ class ABCD:
         self.logger_.info(
             f"Sampled ABCD graph in {format_duration(sample_end - sample_start)}."
         )
-        return self.graph_, self.membership_matrix_
+        self.sample_ = ABCDSample(self.graph_, self.membership_matrix_)
+        return self.sample_
