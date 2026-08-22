@@ -10,11 +10,11 @@ from abcd_graph import ABCD
 def test_abcd(n):
     rng = np.random.default_rng(seed=1)
     abcd = ABCD(n, rng=rng)
-    edges, memberships = abcd.sample()
+    sample = abcd.sample()
 
-    assert_no_bad_edges(edges)
-    assert np.max(edges) == n - 1
-    assert memberships.shape[1] == n
+    assert_no_bad_edges(sample.edges)
+    assert np.max(sample.edges) == n - 1
+    assert sample.membership_matrix.shape[1] == n
 
 
 @pytest.mark.parametrize("n", [100, 200])
@@ -23,13 +23,13 @@ def test_seed(n):
     rng2 = np.random.default_rng(seed=1)
 
     abcd = ABCD(n, rng=rng1)
-    edges1, memberships1 = abcd.sample()
+    sample1 = abcd.sample()
 
     # reset seed
     abcd.rng = rng2
-    edges2, memberships2 = abcd.sample()
+    sample2 = abcd.sample()
 
-    assert_no_bad_edges(edges1)
-    assert_no_bad_edges(edges2)
-    npt.assert_array_equal(edges1, edges2)
-    npt.assert_array_equal(memberships1.toarray(), memberships2.toarray())
+    assert_no_bad_edges(sample1.edges)
+    assert_no_bad_edges(sample2.edges)
+    npt.assert_array_equal(sample1.edges, sample2.edges)
+    npt.assert_array_equal(sample2.to_dense(), sample2.to_dense())
