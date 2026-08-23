@@ -55,7 +55,6 @@ def configuration_model(
     rng: Generator
         numpy.random.Generator object used for randomness.
     """
-    node_ids = np.arange(len(degrees), dtype=np.uint32)
     stubs = np.repeat(node_ids, degrees)
     rng.shuffle(stubs)
     edges = stubs.reshape(-1, 2)
@@ -154,16 +153,16 @@ def rewire(
     # with a random edge (good or bad, but not the one we are trying to resolve)
     # If the swap would cause a collision, move bad edge to the back of the
     # queue. Repeat until the Queue is empty or we give up.
-
-    queue_head = 0
-    queue_tail = len(bad_queue)
-    n_bad_edges = queue_tail
-    for _ in range(queue_tail * max_swap_attempts_per_bad_edge):
-        if n_bad_edges == 0:
+    next_index = len(bad_queue)
+    for _ in range(len(bad_queue) * max_swap_attempts_per_bad_edge):
+        if len(bad_queue) == 0:
             break
-        bad_edge = edge_from_id(bad_queue[queue_head])
+        else:
+            next_index = (next_index + 1) % len(bad_queue)
+        bad_edge_id = bad_queue[next_index]
+        bad_edge = edge_from_id(bad_edge_id)
         choose_from_good_edges = rng.uniform() < n_good_edges / (
-            n_good_edges + n_bad_edges - 1
+            n_good_edges + len(bad_queue) - 1
         )
         if choose_from_good_edges:
             swap_index = rng.integers(0, n_good_edges)
@@ -176,13 +175,10 @@ def rewire(
                 good_edges.add(make_edge_id(new_edge1))
                 good_edges.add(make_edge_id(new_edge2))
                 good_edges.discard(make_edge_id(swap_candidate_edge))
-                queue_head = (queue_head + 1) % len(bad_queue)
-                n_bad_edges -= 1
-            else:
-                queue_head, queue_tail = (queue_head + 1) % len(bad_queue), queue_tail
+                bad_queue.pop(next_index)
         else:
-            swap_offset = rng.integers(1, n_bad_edges)  # don't choose current head
-            swap_index = (queue_head + swap_offset) % len(bad_queue)
+            swap_offset = rng.integers(1, len(bad_queue))  # don't choose current head
+            swap_index = (next_index + swap_offset) % len(bad_queue)
             swap_candidate_edge_id = bad_queue[swap_index]
             swap_candidate_edge = edge_from_id(swap_candidate_edge_id)
             new_edge1, new_edge2 = swap(bad_edge, swap_candidate_edge, rng)
@@ -193,16 +189,16 @@ def rewire(
                 good_edges.add(make_edge_id(new_edge1))
                 good_edges.add(make_edge_id(new_edge2))
                 n_good_edges += 1
-                bad_queue.pop(swap_index)
-                queue_head = (queue_head + 1) % len(bad_queue)
-                n_bad_edges -= 2
-            else:
-                queue_head, queue_tail = (queue_head + 1) % len(bad_queue), queue_tail
+                if swap_index < next_index:  # Pop larger index first
+                    bad_queue.pop(next_index)
+                    bad_queue.pop(swap_index)
+                else:
+                    bad_queue.pop(swap_index)
+                    bad_queue.pop(next_index)
 
     # Write bad edges that failed to swap back into the edge list
-    for i in range(n_bad_edges):
-        bad_edge_id = bad_queue[(queue_head + 1) % len(bad_queue)]
-        bad_edge = edge_from_id(bad_edge_id)
+    for i in range(len(bad_queue)):
+        bad_edge = edge_from_id(bad_queue[i])
         edges[n_good_edges + i] = bad_edge
 
     return n_good_edges
