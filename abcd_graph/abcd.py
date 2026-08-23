@@ -1,7 +1,8 @@
 import logging
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Container
 from time import perf_counter
+from typing import Self
 from warnings import warn
 
 import numpy as np
@@ -372,7 +373,7 @@ class ABCD:
             logger.addHandler(handler)
         return logger
 
-    def sample(self) -> (NDArray[np.uint32], sp.csr_array):
+    def sample(self) -> ABCDSample:
         sample_start = perf_counter()
 
         self._validate_params()
@@ -480,3 +481,57 @@ class ABCD:
         )
         self.sample_ = ABCDSample(self.graph_, self.membership_matrix_)
         return self.sample_
+
+    def fit(
+        self,
+        graph: ABCDSample,
+        do_not_set: Container | None = {"degree_sequence", "community_size_sequence"},
+    ) -> Self:
+        """Set parameters of this ABCD class to the empirical values from another graph.
+        Measureable parameters are:
+            - "n"
+            - "xi"
+            - "outliers"
+            - "eta"
+            - "rho"
+            - "degree_exponent"
+            - "min_degree"
+            - "max_degree"
+            - "community_size_exponent"
+            - "min_community_size"
+            - "max_community_size"
+            - "degree_sequence"
+            - "community_size_sequence"
+
+        Parameters
+        ----------
+        graph:ABCDSample
+            The graph used to measure empirical values
+
+        do_not_set:Container | None (default={'degree_sequence', 'community_size_sequence'})
+            List of parameter names that should not be set to the empirical values. Setting degree
+            sequence or community size sequence take priority and force samples to have exactly
+            the same sequence.
+
+
+        """
+        parameters = [
+            "n",
+            "xi",
+            "outliers",
+            "eta",
+            "rho",
+            "degree_exponent",
+            "min_degree",
+            "max_degree",
+            "community_size_exponent",
+            "min_community_size",
+            "max_community_size",
+            "degree_sequence",
+            "community_size_sequence",
+        ]
+        for parameter in parameters:
+            if parameter not in do_not_set:
+                value = getattr(graph, parameter)
+                setattr(self, parameter, value)
+        return self
