@@ -17,6 +17,8 @@ from abcd_graph.membership import build_membership_matrix
 from abcd_graph.models import Model, chunglu_model, configuration_model, rewire
 from abcd_graph.samplers import sample_community_sizes, sample_degrees
 
+MAX_N = np.iinfo(np.uint32).max
+
 
 def format_duration(seconds: float):
     if seconds >= 1.0:
@@ -226,13 +228,15 @@ class ABCD:
     def _validate_params(self):
         if not isinstance(self.n, (int, np.integer)) or self.n < 1:
             raise ValueError("n must be a positive integer")
+        if self.n > MAX_N:
+            raise ValueError(f"n must at most {MAX_N} so it can be stored as a uint32")
 
         if not isinstance(self.xi, (float, np.floating)) or self.xi < 0 or self.xi > 1:
             raise ValueError("xi must be a float between 0 and 1")
 
         if isinstance(self.outliers, (int, np.integer)):
-            if self.outliers < 0:
-                raise ValueError("integer outliers must be positive")
+            if self.outliers < 0 or self.outliers > self.n:
+                raise ValueError("integer outliers must be positive and at most n")
         elif isinstance(self.outliers, (float, np.floating)):
             if self.outliers < 0 or self.outliers > 1:
                 raise ValueError("float outliers must be between 0 and 1")
@@ -260,7 +264,10 @@ class ABCD:
         ):
             raise ValueError("rho must be positive")
         elif self.degree_exponent < 2 or self.degree_exponent > 3:
-            warn("Typical degree exponents are between 2 and 3", stacklevel=2)
+            warn(
+                f"Typical degree exponents are between 2 and 3, got {self.degree_exponent}",
+                stacklevel=2,
+            )
 
         if (
             not isinstance(self.min_degree, (int, np.integer))
@@ -283,7 +290,10 @@ class ABCD:
         ):
             raise ValueError("rho must be positive")
         elif self.community_size_exponent < 1 or self.community_size_exponent > 2:
-            warn("Typical degree exponents are between 1 and 2", stacklevel=2)
+            warn(
+                f"Typical degree exponents are between 1 and 2, got {self.community_size_exponent}",
+                stacklevel=2,
+            )
 
         if (
             not isinstance(self.min_community_size, (int, np.integer))
@@ -323,9 +333,9 @@ class ABCD:
                 raise ValueError(
                     "community size sequence must be able to cast to a numpy array of uint32"
                 ) from e
-            if np.any(self.community_size_sequence >= self.n):
+            if np.any(self.community_size_sequence_ >= self.n):
                 raise ValueError("community sizes must be less than n")
-            if np.any(self.community_size_sequence < 1):
+            if np.any(self.community_size_sequence_ < 1):
                 raise ValueError("community sizes must be at least 2")
 
         if not isinstance(self.alpha_max, (float, np.floating)) or self.alpha_max <= 0:

@@ -19,6 +19,12 @@ def test_abcd(n):
     assert sample.membership_matrix.shape[1] == n
 
 
+def test_abcd_raises_large_n():
+    abcd = ABCD(np.iinfo(np.uint32).max + 1)
+    with pytest.raises(ValueError):
+        abcd.sample()
+
+
 @pytest.mark.parametrize("n", [100, 200])
 def test_seed(n):
     rng1 = np.random.default_rng(seed=1)
