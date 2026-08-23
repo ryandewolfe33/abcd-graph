@@ -88,7 +88,7 @@ def test_community_array(sample):
     sample.membership_matrix = sp.csr_array(
         [[1, 1, 0, 0, 0], [0, 0, 1, 1, 0]], dtype=np.bool
     )
-    result = sample.community_array()
+    result = sample.community_array
 
     correct = np.array([0, 0, 1, 1, -1])
     npt.assert_array_equal(correct, result)
@@ -96,4 +96,5 @@ def test_community_array(sample):
 
 def test_community_array_raises_with_overlap(sample):
     with pytest.raises(ValueError):
-        sample.community_array()
+        result = sample.community_array
+        assert len(result) == 5

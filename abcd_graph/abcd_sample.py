@@ -168,6 +168,7 @@ class ABCDSample:
                 "Run `pip install igraph` to install it."
             ) from e
 
+    @property
     def community_array(self):
         if self.eta > 1:
             raise ValueError(

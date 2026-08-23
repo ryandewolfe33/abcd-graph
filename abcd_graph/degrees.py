@@ -326,6 +326,8 @@ def assign_degrees(
         np.uint32
     )  # size of each community
     n_coms = membership_matrix.sum(axis=0)  # number of communities per node
+    if np.max(n_coms) == 1:
+        rho = 0.0
     community_size_matrix = (
         sp.diags_array(community_sizes, format="csr", dtype=np.uint32)
         @ membership_matrix

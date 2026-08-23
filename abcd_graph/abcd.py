@@ -119,36 +119,52 @@ class ABCD:
 
     Parameters
     ----------
-
-    vcount : int
+    n : int
         The number of vertices in the graph.
-
-    gamma : float, default=2.5
-        Powerlaw exponent for the degree distribution. Not used if
-        degree_sequence is passed.
-
-    beta: float, default=1.5
-        Powerlaw exponent for the community size distribution. Not used if a
-        custom community_size_sequence is passed.
 
     xi: float, default=0.25
         Proportion of edges in the global background graph. Setting xi=0 gives
         disjoint communities while xi=1 gives a random graph with no community
         structure.
 
+    outliers : int | float, default=0
+        Number or proportion of outliers. Outliers have their entire degree in
+        the background graph and do not belong to any community.
+
+    eta: float, default=1.0
+        Average number of communities for non-outlier nodes. When eta=1 there
+        is no overlap.
+
+    dimension: int, default=8
+        Dimension of the hidden reference layer used to construct overlapping
+        communities. Not used if eta is 1.
+
+    rho: float, default=0,
+        Pearson correlation between node degree and the number of communities
+        it is in. Not used if eta is 1.
+
+    degree_exponent : float, default=2.5
+        Powerlaw exponent for the degree distribution. Not used if
+        degree_sequence is passed.
+
     min_degree : int,  default=5
         Minimum degree in the graph. Not used if degree_sequence is passed.
 
-    max_degree : int, default=30
-        Maximum degree in the graph. Not used if degree_sequence is passed.
+    max_degree : int | Callable[[int], int], default=lambda n: int(n**0.5)
+        Maximum degree in the graph. May be be passed as a function that
+        will be called on n. Not used if degree_sequence is passed.
+
+    community_size_exponent: float, default=1.5
+        Powerlaw exponent for the community size distribution. Not used if a
+        custom community_size_sequence is passed.
 
     min_community_size : int, default=20
         Minimum community size. Not used if a custom community_size_sequence
         is passed.
 
-    max_community_size: int, default=250
-        Maximum community size. Not used if a custom community_size_sequence
-        is passed.
+    max_community_size: int | Callable[[int], int], default=lambda n: int(n**0.75)
+        Maximum community size. May be be passed as a function that will be called
+        on n. Not used if a custom community_size_sequence is passed.
 
     degree_sequence : Sequence[int] | NDArray[np.int64] | None, default=None
         Used to pass a custom degree sequence that overrides the default
@@ -159,12 +175,28 @@ class ABCD:
         powerlaw distribution. The sum of the community sizes must equal the number
         of vertices minus the number of outliers.
 
-    num_outliers : int, default=0
-        The number of outliers. These vertices have their entire degree in the
-        global background graph so do not appear in any community.
+    rho_tol: float, default=0.05
+        Tolerance for rho optmiziation. Only used if rho != 0.
+
+    alpha_min: float, default=-60.0
+        Minimum bound in rho optimization.  Only used if rho != 0.
+
+    alpha_max: float, default=60.0
+        Maximum bound in rho optmization.  Only used if rho != 0.
+
+    alpha_iters: int, default=10
+        Number of alphas to try in rho optimization.  Only used if rho != 0.
 
     model : Model | None, default=None
         Random graph model used to sample the community and background graphs.
+
+    max_swap_attempts_per_bad_edge: int, default=5
+        Maximum number of time to try and swap each bad edge during rewiring step.
+        Small numbers will improve speed, but degrades the quality since any edges
+        that fail to get rewired are dropped.
+
+    rng : numpy.random.Generator, default=numpy.random.default_rng()
+        Source of all randomness.
 
     logger : Logger | None, default=None
         Option to pass a custom logging object.
