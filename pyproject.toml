@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "abcd-graph"
-version = "0.5.0-alpha"
+version = "0.5.0-beta"
 description = "A python library for generating ABCD graphs."
 authors = [
     { name = "Aleksander Wojnarowicz", email = "alwojnarowicz@gmail.com" },
