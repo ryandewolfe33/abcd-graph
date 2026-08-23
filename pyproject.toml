@@ -8,7 +8,8 @@ version = "0.5.0-alpha"
 description = "A python library for generating ABCD graphs."
 authors = [
     { name = "Aleksander Wojnarowicz", email = "alwojnarowicz@gmail.com" },
-    { name = "Jordan Barrett" }
+    { name = "Jordan Barrett" },
+    { name = "Ryan DeWolfe", email = "ryan.dewolfe@uwaterloo.ca" },
 ]
 keywords = ["community detection", "graph clustering", "benchmark", "evaluation", "random graphs"]
 readme = "README.md"
