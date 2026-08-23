@@ -107,5 +107,8 @@ def test_assign_degrees_overlap_with_rho(xi, rho):
     assert np.sum(assigned_degrees == 4) == 16
     assert np.sum(assigned_degrees == 3) == 16
     n_coms = membership_matrix.sum(axis=0)
-    empirical_rho = np.corrcoef(assigned_degrees, n_coms)[0, 1]
+    inlier_mask = n_coms > 0
+    empirical_rho = np.corrcoef(assigned_degrees[inlier_mask], n_coms[inlier_mask])[
+        0, 1
+    ]
     assert np.sign(empirical_rho) == np.sign(rho)

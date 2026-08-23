@@ -133,7 +133,6 @@ def _assign_outlier_degrees(
     return outlier_degrees, remaining_degrees
 
 
-@njit(cache=True)
 def _assign_degrees(
     degrees: NDArray[np.uint32],
     n_coms: NDArray,
@@ -142,47 +141,65 @@ def _assign_degrees(
     alpha: float = 0.0,
 ) -> NDArray[np.uint32]:
     assigned_degrees = np.empty_like(degrees)
-    ids = np.arange(len(degrees), dtype=np.uint32)  # Pre-allocate for where
     is_open_mask = np.ones_like(assigned_degrees, dtype=np.bool)
     n_coms_exp_alpha = n_coms.astype(np.float64) ** alpha
-    threshold_mask = np.zeros_like(thresholds, dtype=np.bool)
-    last_d = np.iinfo(np.uint32).max  # Degrees are sorted descending
-    for d in degrees:
-        if d < last_d:
-            threshold_mask[thresholds >= d] = True
-            last_d = d
-        # start = time.perf_counter()
-        allowed_indices = ids[is_open_mask & threshold_mask]
-        if len(allowed_indices) == 0:
-            min_open_threshold = np.min(thresholds[is_open_mask & ~threshold_mask])
-            allowed_indices = ids[is_open_mask & (thresholds == min_open_threshold)]
-        # end = time.perf_counter()
-        # print(f"Got open indices in {(end - start)* 1e6:.3f}us")
-
-        # Choose an available index proportional to n_coms ** alpha
-        # start = time.perf_counter()
-        chosen_index = 0
-        if len(allowed_indices) > 1:
-            if alpha == 0:
-                chosen_index = rng.integers(0, len(allowed_indices))
-            else:
-                probs = n_coms_exp_alpha[allowed_indices]
-                random_value = rng.uniform()
-                for index, p in enumerate(probs):
-                    random_value -= p
-                    if random_value < 0:
-                        chosen_index = index
-                        break
-        # end = time.perf_counter()
-        # print(f"Chose index in {(end - start)* 1e6:.3f}us")
-
-        assigned_degrees[allowed_indices[chosen_index]] = d
-        is_open_mask[allowed_indices[chosen_index]] = False
+    degree, counts = np.unique_counts(degrees)
+    # Sort by degree descending
+    degree_argsort = np.argsort(degree)[::-1]
+    degree = degree[degree_argsort]
+    counts = counts[degree_argsort]
+    # Group decisions since there are relatively few unique degrees
+    for d, count in zip(degree, counts, strict=True):
+        allowed_indices = np.where(is_open_mask & (d <= thresholds))[0]
+        if len(allowed_indices) <= count:
+            # assign allowed and pick the next smallest thresholds to meet the count
+            assigned_degrees[allowed_indices] = d
+            is_open_mask[assigned_degrees] = False
+            n_left = count - len(allowed_indices)
+            if n_left > 0:
+                # This part is slow, but does not run that often
+                # Sort still open ids by threshold descending
+                open_ids = np.where(is_open_mask)[0]
+                sorted_by_threshold = open_ids[np.argsort(thresholds[open_ids])[::-1]]
+                # Pick the next best
+                next_best_indices = sorted_by_threshold[:n_left]
+                # Break ties randomly
+                min_needed_threshold = thresholds[next_best_indices[-1]]
+                next_best_indices_without_max = next_best_indices[
+                    thresholds[next_best_indices] < min_needed_threshold
+                ]
+                n_of_max_threshold = len(next_best_indices) - len(
+                    next_best_indices_without_max
+                )
+                all_indices_with_max_needed_threshold = np.where(
+                    is_open_mask & (thresholds == min_needed_threshold)
+                )[0]
+                probs = n_coms_exp_alpha[all_indices_with_max_needed_threshold]
+                probs /= np.sum(probs)
+                chosen_max_indices = rng.choice(
+                    all_indices_with_max_needed_threshold,
+                    size=n_of_max_threshold,
+                    replace=False,
+                    p=probs,
+                )
+                # Assign degrees and update masks
+                assigned_degrees[next_best_indices_without_max] = d
+                is_open_mask[next_best_indices_without_max] = False
+                assigned_degrees[chosen_max_indices] = d
+                is_open_mask[chosen_max_indices] = False
+        else:
+            # Choose `count` indices from allowed_indices proportional to n_coms ** alpha
+            probs = n_coms_exp_alpha[allowed_indices]
+            probs /= np.sum(probs)
+            chosen_indices = chosen_max_indices = rng.choice(
+                allowed_indices, size=count, replace=False, p=probs
+            )
+            assigned_degrees[chosen_indices] = d
+            is_open_mask[chosen_indices] = False
 
     return assigned_degrees
 
 
-@njit(cache=True)
 def _assign_degrees_with_alpha_search(
     degrees: NDArray[np.uint32],
     n_coms: NDArray[np.uint32],
