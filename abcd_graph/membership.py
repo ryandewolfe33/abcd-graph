@@ -24,7 +24,7 @@ def make_primary_community_sizes(
     # Increase or decrease random communities by one (but not to size 0)
     # to make it so.
     primary_size_sum = np.sum(primary_community_sizes)
-    required_change = n - primary_size_sum
+    required_change = n - int(primary_size_sum)
     if required_change > 0:
         increase_indices = rng.choice(n_coms, size=required_change, replace=False)
         primary_community_sizes[increase_indices] += 1
