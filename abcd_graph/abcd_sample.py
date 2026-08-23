@@ -65,18 +65,17 @@ class ABCDSample:
         return self.edges.shape[0]
 
     @property
-    def n_outliers(self) -> int:
+    def outliers(self) -> int:
         return np.sum(self.membership_matrix.count_nonzero(axis=0) == 0)
 
     @property
     def eta(self) -> float:
-        return self.membership_matrix.sum() / (self.n - self.n_outliers)
+        return self.membership_matrix.sum() / (self.n - self.outliers)
 
     @property
     def rho(self) -> float:
-        # Degrees sorted by node_id
-        degrees = np.unique_counts(self.edges, sorted=True)[1]
-        coms_per_node = self.membership_matrix.sum(axis=1)
+        degrees = self.to_sparse().sum(axis=1) // 2
+        coms_per_node = self.membership_matrix.sum(axis=0)
         inlier_mask = coms_per_node > 0
         rho = np.corrcoef(degrees[inlier_mask], coms_per_node[inlier_mask])[0, 1]
         return rho
@@ -87,6 +86,14 @@ class ABCDSample:
         node, degree = np.unique_counts(self.edges)
         degrees[node] = degree
         return degrees
+
+    @property
+    def min_degree(self) -> int:
+        return np.min(self.degree_sequence)
+
+    @property
+    def max_degree(self) -> int:
+        return np.max(self.degree_sequence)
 
     @property
     def degree_exponent(self) -> float:
@@ -103,6 +110,14 @@ class ABCDSample:
     @property
     def community_size_sequence(self) -> NDArray:
         return self.membership_matrix.sum(axis=1)
+
+    @property
+    def min_community_size(self) -> int:
+        return np.min(self.community_size_sequence)
+
+    @property
+    def max_community_size(self) -> int:
+        return np.max(self.community_size_sequence)
 
     @property
     def community_size_exponent(self) -> float:
