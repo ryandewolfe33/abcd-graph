@@ -10,7 +10,7 @@ from numpy.random import Generator
 from numpy.typing import ArrayLike, NDArray
 from tqdm import trange
 
-from abcd_graph.abcd_sample import ABCDSample
+from abcd_graph.abcd_sample import ABCDSample, icdf
 from abcd_graph.degrees import assign_degrees, split_degrees
 from abcd_graph.membership import build_membership_matrix
 from abcd_graph.models import Model, chunglu_model, configuration_model, rewire
@@ -289,59 +289,33 @@ class ABCD:
         ):
             raise ValueError("rho must be between -1 and 1")
 
-        if (
-            not isinstance(self.degree_exponent, (float, np.floating))
-            or self.degree_exponent < 0
-        ):
-            raise ValueError("rho must be positive")
-        elif self.degree_exponent < 2 or self.degree_exponent > 3:
-            warn(
-                f"Typical degree exponents are between 2 and 3, got {self.degree_exponent}",
-                stacklevel=2,
-            )
+        if self.degree_sequence is None:
+            if (
+                not isinstance(self.degree_exponent, (float, np.floating))
+                or self.degree_exponent < 0
+            ):
+                raise ValueError("rho must be positive")
+            elif self.degree_exponent < 2 or self.degree_exponent > 3:
+                warn(
+                    f"Typical degree exponents are between 2 and 3, got {self.degree_exponent}",
+                    stacklevel=2,
+                )
 
-        if (
-            not isinstance(self.min_degree, (int, np.integer))
-            or self.min_degree < 1
-            or self.min_degree >= self.n
-        ):
-            raise ValueError("min degree must be a positive int at most n")
+            if (
+                not isinstance(self.min_degree, (int, np.integer))
+                or self.min_degree < 1
+                or self.min_degree >= self.n
+            ):
+                raise ValueError("min degree must be a positive int at most n")
 
-        if not isinstance(self.max_degree, Callable) and (
-            not isinstance(self.max_degree, (int, np.integer))
-            or self.max_degree >= self.n
-        ):
-            raise ValueError(
-                "max degree must be greater than min degree and less than n"
-            )
-
-        if (
-            not isinstance(self.community_size_exponent, (float, np.floating))
-            or self.community_size_exponent < 0
-        ):
-            raise ValueError("rho must be positive")
-        elif self.community_size_exponent < 1 or self.community_size_exponent > 2:
-            warn(
-                f"Typical degree exponents are between 1 and 2, got {self.community_size_exponent}",
-                stacklevel=2,
-            )
-
-        if (
-            not isinstance(self.min_community_size, (int, np.integer))
-            or self.min_community_size < 2
-            or self.min_community_size >= self.n
-        ):
-            raise ValueError("min community size must be an integer between 2 and n")
-
-        if not isinstance(self.max_community_size, Callable) and (
-            not isinstance(self.max_community_size, (int, np.integer))
-            or self.max_community_size >= self.n
-        ):
-            raise ValueError(
-                "max community size must be greater than min community size and less than n"
-            )
-
-        if self.degree_sequence is not None:
+            if not isinstance(self.max_degree, Callable) and (
+                not isinstance(self.max_degree, (int, np.integer))
+                or self.max_degree >= self.n
+            ):
+                raise ValueError(
+                    "max degree must be greater than min degree and less than n"
+                )
+        else:
             try:
                 self.degree_sequence_ = np.asarray(
                     self.degree_sequence, dtype=np.uint32
@@ -355,7 +329,35 @@ class ABCD:
             if np.sum(self.degree_sequence_) % 2 != 0:
                 raise ValueError("sum of degree sequence must be even")
 
-        if self.community_size_sequence is not None:
+        if self.community_size_sequence is None:
+            if (
+                not isinstance(self.community_size_exponent, (float, np.floating))
+                or self.community_size_exponent < 0
+            ):
+                raise ValueError("rho must be positive")
+            elif self.community_size_exponent < 1 or self.community_size_exponent > 2:
+                warn(
+                    f"Typical degree exponents are between 1 and 2, got {self.community_size_exponent}",
+                    stacklevel=2,
+                )
+
+            if (
+                not isinstance(self.min_community_size, (int, np.integer))
+                or self.min_community_size < 2
+                or self.min_community_size >= self.n
+            ):
+                raise ValueError(
+                    "min community size must be an integer between 2 and n"
+                )
+
+            if not isinstance(self.max_community_size, Callable) and (
+                not isinstance(self.max_community_size, (int, np.integer))
+                or self.max_community_size >= self.n
+            ):
+                raise ValueError(
+                    "max community size must be greater than min community size and less than n"
+                )
+        else:
             try:
                 self.community_size_sequence_ = np.asarray(
                     self.community_size_sequence, dtype=np.uint32
@@ -425,37 +427,43 @@ class ABCD:
         else:
             n_outliers = self.outliers
 
-        if self.degree_sequence is None:
+        if self.degree_sequence is not None:
+            degree_sequence = np.asarray(self.degree_sequence, dtype=np.uint32)
+        else:
             self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
-            self.max_degree_ = (
+            max_degree = (
                 self.max_degree(self.n)
                 if callable(self.max_degree)
                 else self.max_degree
             )
-            self.degree_sequence_ = sample_degrees(
+            degree_sequence = sample_degrees(
                 self.n,
                 self.degree_exponent,
                 self.min_degree,
-                self.max_degree_,
+                max_degree,
                 self.rng,
             )
             end = perf_counter()
             self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
-        if self.community_size_sequence is None:
+        if self.community_size_sequence is not None:
+            community_size_sequence = np.asarray(
+                self.community_size_sequence, dtype=np.uint32
+            )
+        else:
             self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
-            self.max_community_size_ = (
+            max_community_size = (
                 self.max_community_size(self.n)
                 if callable(self.max_community_size)
                 else self.max_community_size
             )
-            self.community_size_sequence_ = sample_community_sizes(
+            community_size_sequence = sample_community_sizes(
                 self.n - n_outliers,
                 self.community_size_exponent,
                 self.min_community_size,
-                self.max_community_size_,
+                max_community_size,
                 self.eta,
                 self.rng,
             )
@@ -464,9 +472,9 @@ class ABCD:
 
         self.logger_.info("Building Membership Matrix")
         start = perf_counter()
-        self.membership_matrix_ = build_membership_matrix(
+        membership_matrix = build_membership_matrix(
             self.n,
-            self.community_size_sequence_,
+            community_size_sequence,
             n_outliers,
             self.dimension,
             self.rng,
@@ -477,8 +485,8 @@ class ABCD:
         self.logger_.info("Assigning Degrees")
         start = perf_counter()
         assigned_degrees = assign_degrees(
-            self.degree_sequence_,
-            self.membership_matrix_,
+            degree_sequence,
+            membership_matrix,
             self.xi,
             self.rng,
             self.rho,
@@ -494,7 +502,7 @@ class ABCD:
         start = perf_counter()
         community_degrees, background_degrees = split_degrees(
             assigned_degrees,
-            self.membership_matrix_,
+            membership_matrix,
             self.xi,
             self.rng,
         )
@@ -508,7 +516,7 @@ class ABCD:
         else:
             raise ValueError("model should be one of 'configuration' or 'chung-lu")
 
-        self.graph_ = generate_graph(
+        graph = generate_graph(
             community_degrees,
             background_degrees,
             model_func,
@@ -520,8 +528,8 @@ class ABCD:
         self.logger_.info(
             f"Sampled ABCD graph in {format_duration(sample_end - sample_start)}."
         )
-        self.sample_ = ABCDSample(self.graph_, self.membership_matrix_)
-        return self.sample_
+        sample = ABCDSample(graph, membership_matrix)
+        return sample
 
     def fit(
         self,
@@ -571,7 +579,51 @@ class ABCD:
             "community_size_sequence",
         ]
         for parameter in parameters:
-            if do_not_set is not None and parameter not in do_not_set:
+            if do_not_set is None or parameter not in do_not_set:
                 value = getattr(graph, parameter)
                 setattr(self, parameter, value)
         return self
+
+    def expected_degree_icdf(self, points: ArrayLike):
+        """Measure the expected inverse cumulative distribution function
+        (icdf) of the degree distribution at a sequence of values.
+
+        Parameters
+        ----------
+        points: ArrayLike
+            An array of points at which to measure the icdf. Points must
+            be non-negative and increasing.
+
+        Returns
+        -------
+        NDArray[np.floating]
+            The expected icdf values.
+        """
+        self._validate_params()
+        if self.degree_sequence is not None:
+            return icdf(points, self.degree_sequence)
+        values = np.arange(self.min_degree, self.max_degree + 1)
+        weights = values**-self.degree_exponent
+        return icdf(points, values, weights=weights)
+
+    def expected_community_size_icdf(self, points: ArrayLike):
+        """Measure the expected inverse cumulative distribution function
+        (icdf) of the community size distribution at a sequence of values.
+
+        Parameters
+        ----------
+        points: ArrayLike
+            An array of points at which to measure the icdf. Points must
+            be non-negative and increasing.
+
+        Returns
+        -------
+        NDArray[np.floating]
+            The expected icdf values.
+        """
+        self._validate_params()
+        if self.community_size_sequence is not None:
+            return icdf(points, self.community_size_sequence)
+        values = np.arange(self.min_community_size, self.max_community_size + 1)
+        weights = values**-self.community_size_exponent
+        return icdf(points, values, weights=weights)

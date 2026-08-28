@@ -20,11 +20,11 @@ def count_intra_community_edges(
     return m_intra_community
 
 
-def icdf(points: ArrayLike, sequence: ArrayLike) -> NDArray[np.floating]:
+def icdf(points: ArrayLike, sequence: ArrayLike, weights=None) -> NDArray[np.floating]:
     points = np.asarray(points)
     points = np.insert(points, 0, 0)
-    hist, bin_edges = np.histogram(sequence, bins=points)
-    cdf = np.cumsum(hist)
+    hist, bin_edges = np.histogram(sequence, bins=points, weights=weights)
+    cdf = np.cumsum(hist).astype(np.float64)
     cdf /= cdf[-1]
     icdf = 1 - cdf
     return icdf
@@ -36,15 +36,48 @@ class ABCDSample:
     Consists of an edge list and a community-node membership matrix.
     Has functions for measuring empirical properties of the graph, and
     functions for converting the edge list to other common graph types.
+
+    Parameters
+    ----------
+    edges: NDArray
+        List of edges. If dtype is integers, assumed to be contiguous and
+        treated as node ids. If dtype is anything else, they will be
+        assigned contiguous integer ids.
+    membership_matrix: sp.sparray | sp.spmatrix | ArrayLike
+        Community x node sparse membership array, 2-d community x node dense
+        membership array, or 1-d array of community ids.
     """
 
     def __init__(
         self,
-        edges: NDArray[np.uint32],
-        membership_matrix: sp.csr_array,
+        edges: ArrayLike,
+        communities: sp.sparray | sp.spmatrix | ArrayLike,
     ):
+        edges = np.asarray(edges)
+        if not np.issubdtype(edges.dtype, np.integer):
+            _, edges = np.unique(edges, return_inverse=True)
         self.edges = edges
-        self.membership_matrix = membership_matrix
+        if sp.issparse(communities):
+            self.membership_matrix = sp.csr_array(communities)
+        else:
+            communities = np.asarray(communities)
+            if communities.ndim == 2:
+                self.membership_matrix = sp.csr_array(communities, dtype=np.bool)
+            elif communities.ndim == 1 and np.issubdtype(communities.dtype, np.integer):
+                communities = communities.astype(np.int64)
+                n = len(communities)
+                node_ids = np.arange(n, dtype=np.int64)
+                membership = np.vstack([communities, node_ids])
+                membership = membership[:, membership[0] >= 0]  # Drop outliers
+                membership_matrix = sp.coo_array(
+                    (np.ones(membership.shape[1], dtype=np.bool), membership),
+                    shape=(np.max(communities) + 1, n),
+                )
+                self.membership_matrix = membership_matrix.tocsr()
+            else:
+                raise ValueError(
+                    "Got an unknown format for communities. Must be a sparse or dense membership matrix or a 1-d array of community ids."
+                )
 
     @property
     def n(self) -> int:
@@ -111,6 +144,8 @@ class ABCDSample:
         -------
         float
         """
+        if self.eta == 1:
+            return 1.0
         degrees = self.to_sparse().sum(axis=1) // 2
         coms_per_node = self.membership_matrix.sum(axis=0)
         inlier_mask = coms_per_node > 0
@@ -296,7 +331,7 @@ class ABCDSample:
         """
         if self.eta > 1:
             raise ValueError(
-                "Overlapping communities cannot be represent with an array"
+                "Overlapping communities cannot be represented with an array"
             )
         result = np.full(self.n, -1)
         coms, nodes = self.membership_matrix.nonzero()
@@ -317,7 +352,7 @@ class ABCDSample:
         NDArray[np.floating]
             The measured icdf values.
         """
-        return icdf(self.degree_sequence)
+        return icdf(points, self.degree_sequence)
 
     def community_size_icdf(self, points: ArrayLike):
         """Measure the inverse cumulative distribution function (icdf)
@@ -333,4 +368,4 @@ class ABCDSample:
         NDArray[np.floating]
             The measured icdf values.
         """
-        return icdf(self.community_size_sequence)
+        return icdf(points, self.community_size_sequence)

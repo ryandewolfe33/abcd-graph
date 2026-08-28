@@ -15,6 +15,8 @@ Documentation
    :maxdepth: 1
    :caption: User Guide
 
+   getting_started
+
 .. toctree::
    :maxdepth: 1
    :caption: API
