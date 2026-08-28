@@ -2,7 +2,6 @@ import logging
 import sys
 from collections.abc import Callable, Container
 from time import perf_counter
-from typing import Self
 from warnings import warn
 
 import numpy as np
@@ -150,7 +149,7 @@ class ABCD:
     min_degree : int,  default=5
         Minimum degree in the graph. Not used if degree_sequence is passed.
 
-    max_degree : int | Callable[[int], int], default=lambda n: int(n**0.5)
+    max_degree : int | Callable[[int], int], default=int(n**0.5)
         Maximum degree in the graph. May be be passed as a function that
         will be called on n. Not used if degree_sequence is passed.
 
@@ -162,7 +161,7 @@ class ABCD:
         Minimum community size. Not used if a custom community_size_sequence
         is passed.
 
-    max_community_size: int | Callable[[int], int], default=lambda n: int(n**0.75)
+    max_community_size: int | Callable[[int], int], default=int(n**0.75)
         Maximum community size. May be be passed as a function that will be called
         on n. Not used if a custom community_size_sequence is passed.
 
@@ -176,16 +175,16 @@ class ABCD:
         of vertices minus the number of outliers.
 
     rho_tol: float, default=0.05
-        Tolerance for rho optmiziation. Only used if rho != 0.
+        Tolerance for rho optmiziation. Only used if rho is not 0.
 
     alpha_min: float, default=-60.0
-        Minimum bound in rho optimization.  Only used if rho != 0.
+        Minimum bound in rho optimization.  Only used if rho is not 0.
 
     alpha_max: float, default=60.0
-        Maximum bound in rho optmization.  Only used if rho != 0.
+        Maximum bound in rho optmization.  Only used if rho is not 0.
 
     alpha_iters: int, default=10
-        Number of alphas to try in rho optimization.  Only used if rho != 0.
+        Number of alphas to try in rho optimization.  Only used if rho is not 0.
 
     model : Model | None, default=None
         Random graph model used to sample the community and background graphs.
@@ -528,22 +527,23 @@ class ABCD:
         self,
         graph: ABCDSample,
         do_not_set: Container | None = {"degree_sequence", "community_size_sequence"},
-    ) -> Self:
+    ):
         """Set parameters of this ABCD class to the empirical values from another graph.
         Measureable parameters are:
-            - "n"
-            - "xi"
-            - "outliers"
-            - "eta"
-            - "rho"
-            - "degree_exponent"
-            - "min_degree"
-            - "max_degree"
-            - "community_size_exponent"
-            - "min_community_size"
-            - "max_community_size"
-            - "degree_sequence"
-            - "community_size_sequence"
+
+            * n
+            * xi
+            * outliers
+            * eta
+            * rho
+            * degree_exponent
+            * min_degree
+            * max_degree
+            * community_size_exponent
+            * min_community_size
+            * max_community_size
+            * degree_sequence
+            * community_size_sequence
 
         Parameters
         ----------
@@ -554,8 +554,6 @@ class ABCD:
             List of parameter names that should not be set to the empirical values. Setting degree
             sequence or community size sequence take priority and force samples to have exactly
             the same sequence.
-
-
         """
         parameters = [
             "n",
@@ -573,7 +571,7 @@ class ABCD:
             "community_size_sequence",
         ]
         for parameter in parameters:
-            if parameter not in do_not_set:
+            if do_not_set is not None and parameter not in do_not_set:
                 value = getattr(graph, parameter)
                 setattr(self, parameter, value)
         return self

@@ -20,7 +20,7 @@ def count_intra_community_edges(
     return m_intra_community
 
 
-def icdf(points: ArrayLike, sequence: ArrayLike):
+def icdf(points: ArrayLike, sequence: ArrayLike) -> NDArray[np.floating]:
     points = np.asarray(points)
     points = np.insert(points, 0, 0)
     hist, bin_edges = np.histogram(sequence, bins=points)
@@ -48,10 +48,32 @@ class ABCDSample:
 
     @property
     def n(self) -> int:
+        """The number of vertices in the graph.
+
+        Returns
+        -------
+        int
+        """
         return self.membership_matrix.shape[1]
 
     @property
+    def m(self) -> int:
+        """The number of edges in the graph.
+
+        Returns
+        -------
+        int
+        """
+        return self.edges.shape[0]
+
+    @property
     def xi(self) -> float:
+        """The proportion of inter-community edges.
+
+        Returns
+        -------
+        float
+        """
         membership_csc = self.membership_matrix.tocsc()
         m_intra_community = count_intra_community_edges(
             self.edges,
@@ -61,19 +83,34 @@ class ABCDSample:
         return 1 - (m_intra_community / self.m)
 
     @property
-    def m(self) -> int:
-        return self.edges.shape[0]
-
-    @property
     def outliers(self) -> int:
+        """The number of outlier vertices (belong to no community).
+
+        Returns
+        -------
+        int
+        """
         return np.sum(self.membership_matrix.count_nonzero(axis=0) == 0)
 
     @property
     def eta(self) -> float:
+        """The average number of communities per non-outlier vertex.
+
+        Returns
+        -------
+        float
+        """
         return self.membership_matrix.sum() / (self.n - self.outliers)
 
     @property
     def rho(self) -> float:
+        """The pearson correlation between the degree and number of communities
+        to which they belong for non-outlier nodes.
+
+        Returns
+        -------
+        float
+        """
         degrees = self.to_sparse().sum(axis=1) // 2
         coms_per_node = self.membership_matrix.sum(axis=0)
         inlier_mask = coms_per_node > 0
@@ -82,6 +119,12 @@ class ABCDSample:
 
     @property
     def degree_sequence(self) -> NDArray:
+        """The degree sequence.
+
+        Returns
+        -------
+        Array[int]
+        """
         degrees = np.zeros(self.n, dtype=np.uint32)
         node, degree = np.unique_counts(self.edges)
         degrees[node] = degree
@@ -89,14 +132,32 @@ class ABCDSample:
 
     @property
     def min_degree(self) -> int:
+        """The minimum degree.
+
+        Returns
+        -------
+        int
+        """
         return np.min(self.degree_sequence)
 
     @property
     def max_degree(self) -> int:
+        """The maximum degree.
+
+        Returns
+        -------
+        int
+        """
         return np.max(self.degree_sequence)
 
     @property
     def degree_exponent(self) -> float:
+        """The measured degree exponent
+
+        Returns
+        -------
+        float
+        """
         degree_sequence = self.degree_sequence
         min_degree = np.min(degree_sequence)
         exponent = powerlaw.Fit(
@@ -109,18 +170,42 @@ class ABCDSample:
 
     @property
     def community_size_sequence(self) -> NDArray:
+        """The community size sequence.
+
+        Returns
+        -------
+        Array[int]
+        """
         return self.membership_matrix.sum(axis=1)
 
     @property
     def min_community_size(self) -> int:
+        """The minimum community size.
+
+        Returns
+        -------
+        int
+        """
         return np.min(self.community_size_sequence)
 
     @property
     def max_community_size(self) -> int:
+        """The maximum community size.
+
+        Returns
+        -------
+        int
+        """
         return np.max(self.community_size_sequence)
 
     @property
     def community_size_exponent(self) -> float:
+        """The measured community size exponent.
+
+        Returns
+        -------
+        float
+        """
         size_sequence = self.community_size_sequence
         min_size = np.min(size_sequence)
         exponent = powerlaw.Fit(
@@ -132,6 +217,19 @@ class ABCDSample:
         return exponent
 
     def to_sparse(self, matrix: bool = False) -> sp.csr_array | sp.csr_matrix:
+        """Format the graph as a sparse adjacency matrix.
+
+        Parameters
+        ----------
+        matrix: bool, default=False
+            Flag to make the return type the deprecated scipy.sparse.csr_matrix.
+            This is useful for passing to scikit-network algorithms as they currently
+            do not accept the modern scipy.sparse.csr_array type.
+
+        Returns
+        -------
+        sp.csr_array | sp.csr_matrix
+        """
         adjacency = sp.coo_array(
             (np.ones(self.edges.shape[0], dtype=np.bool), self.edges.T),
             shape=(self.n, self.n),
@@ -142,9 +240,21 @@ class ABCDSample:
         return adjacency.tocsr()
 
     def to_dense(self) -> NDArray[np.bool]:
+        """Format the graph as an adjacency matrix.
+
+        Returns
+        -------
+        Array
+        """
         return self.to_sparse().todense()
 
     def to_networkx(self):
+        """Format the graph as a networkx object.
+
+        Returns
+        -------
+        networkx.Graph
+        """
         try:
             import networkx as nx
 
@@ -157,6 +267,12 @@ class ABCDSample:
             ) from e
 
     def to_igraph(self):
+        """Format the graph as an igraph object.
+
+        Returns
+        -------
+        igraph.Graph
+        """
         try:
             import igraph as ig
 
@@ -170,6 +286,14 @@ class ABCDSample:
 
     @property
     def community_array(self):
+        """Format the community membership matrix as an array of community ids.
+        The value at index i is the community id of vertex i. Following hdbscan
+        convention, communities are indexed 0-n and -1 is used for outliers.
+
+        Returns
+        -------
+        Array[int]
+        """
         if self.eta > 1:
             raise ValueError(
                 "Overlapping communities cannot be represent with an array"
@@ -180,7 +304,33 @@ class ABCDSample:
         return result
 
     def degree_icdf(self, points: ArrayLike):
+        """Measure the inverse cumulative distribution function (icdf)
+        of the degree distribution at a sequence of values
+
+        Parameters
+        ----------
+        points: ArrayLike
+            An array of points at which to mearuse the icdf.
+
+        Returns
+        -------
+        NDArray[np.floating]
+            The measured icdf values.
+        """
         return icdf(self.degree_sequence)
 
     def community_size_icdf(self, points: ArrayLike):
+        """Measure the inverse cumulative distribution function (icdf)
+        at of the community size distribution a sequence of values
+
+        Parameters
+        ----------
+        points: ArrayLike
+            An array of points at which to mearuse the icdf.
+
+        Returns
+        -------
+        NDArray[np.floating]
+            The measured icdf values.
+        """
         return icdf(self.community_size_sequence)
