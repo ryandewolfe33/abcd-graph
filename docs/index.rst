@@ -16,13 +16,14 @@ Documentation
    :caption: User Guide
 
    getting_started
+   outliers
+   overlap
 
 .. toctree::
    :maxdepth: 1
    :caption: API
 
    api
-
 
 Indices and tables
 ==================

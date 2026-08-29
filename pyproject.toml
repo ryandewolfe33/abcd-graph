@@ -37,7 +37,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit>=4.0.1",
+    "prek",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
 ]
@@ -48,6 +48,10 @@ docs = [
     "nbsphinx",
     "numpydoc",
     "sphinx-rtd-theme",
+    "networkx",
+    "igraph",
+    "partition-sknetwork",
+    "egosplit-sknetwork",
 ]
 
 [project.urls]
