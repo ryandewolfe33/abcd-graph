@@ -16,6 +16,7 @@ Documentation
    :caption: User Guide
 
    getting_started
+   how_it_works
    benchmark_networkx
    benchmark_igraph
    benchmark_sknetwork
