@@ -338,6 +338,21 @@ class ABCDSample:
         result[nodes] = coms
         return result
 
+    @property
+    def community_dict(self):
+        """Format the community membership matrix as a dictionary with community ids
+        as keys and sets of nodes as values.
+
+        Returns
+        -------
+        dict[int, set]
+        """
+        indptr = self.membership_matrix.indptr
+        indices = self.membership_matrix.indices
+        return {
+            i: set(indices[indptr[i] : indptr[i + 1]]) for i in range(len(indptr) - 1)
+        }
+
     def degree_icdf(self, points: ArrayLike):
         """Measure the inverse cumulative distribution function (icdf)
         of the degree distribution at a sequence of values
