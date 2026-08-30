@@ -47,9 +47,13 @@ docs = [
     "ipykernel",
     "nbsphinx",
     "numpydoc",
+    "pandocfilters",
     "sphinx-rtd-theme",
     "networkx",
+    "partition-networkx",
     "igraph",
+    "partition-igraph",
+    "scikit-network>=0.33.5",
     "partition-sknetwork",
     "egosplit-sknetwork",
 ]

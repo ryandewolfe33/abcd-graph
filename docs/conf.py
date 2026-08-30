@@ -3,6 +3,8 @@
 import os
 import sys
 
+# Stops an import error
+
 sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------

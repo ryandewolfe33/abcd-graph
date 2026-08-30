@@ -16,6 +16,7 @@ Documentation
    :caption: User Guide
 
    getting_started
+   benchmark_igraph
    outliers
    overlap
 
