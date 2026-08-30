@@ -1,12 +1,21 @@
 exclude: '^examples'
 
 repos:
+  - repo: local
+    hooks:
+      - id: ipynbcompress
+        name: Compress IPYNB images
+        entry: ipynb-compress
+        language: python
+        additional_dependencies: [ipynbcompress, nbformat]
+        files: \.ipynb$
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-added-large-files
+        args: ['--maxkb=4096'] # For notebooks with output
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-toml

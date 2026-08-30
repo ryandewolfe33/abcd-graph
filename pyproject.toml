@@ -37,9 +37,25 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit>=4.0.1",
+    "prek",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
+]
+docs = [
+    "matplotlib",
+    "jupyterlab_pygments>=0.1.1",
+    "ipykernel",
+    "nbsphinx",
+    "numpydoc",
+    "pandocfilters",
+    "sphinx-rtd-theme",
+    "networkx",
+    "partition-networkx",
+    "igraph",
+    "partition-igraph",
+    "scikit-network>=0.33.5",
+    "partition-sknetwork",
+    "egosplit-sknetwork",
 ]
 
 [project.urls]
@@ -47,7 +63,7 @@ Homepage = "https://github.com/AleksanderWWW/abcd-graph"
 Repository = "https://github.com/AleksanderWWW/abcd-graph"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["abcd_graph"]
 
 [tool.pytest.ini_options]
 pythonpath = [
