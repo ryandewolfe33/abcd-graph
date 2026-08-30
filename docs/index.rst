@@ -18,6 +18,7 @@ Documentation
    getting_started
    benchmark_networkx
    benchmark_igraph
+   benchmark_sknetwork
    outliers
    overlap
 
