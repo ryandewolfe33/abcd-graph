@@ -1,14 +1,6 @@
 exclude: '^examples'
 
 repos:
-  - repo: local
-    hooks:
-      - id: ipynbcompress
-        name: Compress IPYNB images
-        entry: ipynb-compress
-        language: python
-        additional_dependencies: [ipynbcompress, nbformat]
-        files: \.ipynb$
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
