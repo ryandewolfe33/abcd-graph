@@ -56,7 +56,6 @@ docs = [
     "scikit-network>=0.33.5",
     "partition-sknetwork",
     "egosplit-sknetwork",
-    "fstar @ git+https://github.com/ryandewolfe33/fstar",
 ]
 
 [project.urls]
