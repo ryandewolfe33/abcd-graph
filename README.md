@@ -164,6 +164,24 @@ The abcd-graph package is MIT licensed.
 
 Contributions are more than welcome! Everything from code to notebooks to examples and documentation are all valuable, so please don't feel you can't contribute. To contribute please fork the project, make your changes, and submit a pull request.
 
+To install the packages required to run the tests, navigate to the folder of your fork and run
+```bash
+pip install abcd-graph ".[dev]"
+```
+Then run the tests with
+```bash
+pytest
+```
+
+To build the documentation locally, navigate to the folder of your fork and run
+```bash
+pip install abcd-graph ".[docs]"
+```
+and
+```bash
+sphinx-build docs docs/_build
+```
+
 ## References
 If you use the ABCD model in an academic work, please consider citing the following works:
 
