@@ -15,3 +15,4 @@ runs:
                            --cov-report=term-missing:skip-covered \
                            --cov=abcd_graph \
                            tests | tee pytest-coverage.txt
+        shell: bash

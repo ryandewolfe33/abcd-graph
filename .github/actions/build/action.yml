@@ -15,3 +15,4 @@ runs:
       - name: Install uv and sync
         uses: astral-sh/setup-uv@v10
       - run: uv sync --frozen
+        shell: bash
