@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-python-version: '3.13'
+          python-python-version: '3.12'
 
       - name: Build
         uses: ./.github/actions/build
