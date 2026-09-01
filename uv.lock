@@ -15,7 +15,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "prek" },
     { name = "pytest" },
@@ -41,32 +41,37 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "egosplit-sknetwork", marker = "extra == 'docs'" },
-    { name = "igraph", marker = "extra == 'docs'" },
-    { name = "ipykernel", marker = "extra == 'docs'" },
-    { name = "jupyterlab-pygments", marker = "extra == 'docs'", specifier = ">=0.1.1" },
-    { name = "matplotlib", marker = "extra == 'docs'" },
-    { name = "nbsphinx", marker = "extra == 'docs'" },
-    { name = "networkx", marker = "extra == 'docs'" },
     { name = "numba", specifier = ">=0.66.0" },
     { name = "numpy", specifier = ">=2.0.0" },
-    { name = "numpydoc", marker = "extra == 'docs'" },
-    { name = "pandocfilters", marker = "extra == 'docs'" },
-    { name = "partition-igraph", marker = "extra == 'docs'" },
-    { name = "partition-networkx", marker = "extra == 'docs'" },
-    { name = "partition-sknetwork", marker = "extra == 'docs'" },
     { name = "powerlaw", specifier = ">=2.0.0" },
-    { name = "prek", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.4" },
-    { name = "pytest-benchmark", marker = "extra == 'dev'", specifier = ">=5.3.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0.0" },
-    { name = "scikit-network", marker = "extra == 'docs'", specifier = ">=0.33.5" },
     { name = "scipy", specifier = ">=1.18.0" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
     { name = "tqdm", specifier = ">=4.0.0" },
     { name = "typing-extensions", specifier = ">=4.10.0" },
 ]
-provides-extras = ["dev", "docs"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "prek" },
+    { name = "pytest", specifier = ">=8.3.4" },
+    { name = "pytest-benchmark", specifier = ">=5.3.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+]
+docs = [
+    { name = "egosplit-sknetwork" },
+    { name = "igraph" },
+    { name = "ipykernel" },
+    { name = "jupyterlab-pygments", specifier = ">=0.1.1" },
+    { name = "matplotlib" },
+    { name = "nbsphinx" },
+    { name = "networkx" },
+    { name = "numpydoc" },
+    { name = "pandocfilters" },
+    { name = "partition-igraph" },
+    { name = "partition-networkx" },
+    { name = "partition-sknetwork" },
+    { name = "scikit-network", specifier = ">=0.33.5" },
+    { name = "sphinx-rtd-theme" },
+]
 
 [[package]]
 name = "alabaster"
