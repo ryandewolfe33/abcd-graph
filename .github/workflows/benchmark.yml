@@ -1,0 +1,30 @@
+name: Performance Regression Check
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'release/**'
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-python-version: '3.13'
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Benchmark
+        run: |
+          # Fails the pipeline if any test is 20% slower than the baseline file
+          pytest --benchmark-compare=./ci_baseline.json \
+                 --benchmark-compare-fail=mean:25% \
+                 --benchmark-warmup=on \
+                 --benchmark-min-rounds=10 \
+                 benchmark
