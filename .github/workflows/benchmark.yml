@@ -21,10 +21,8 @@ jobs:
         uses: ./.github/actions/build
 
       - name: Benchmark
-        run: |
-          # Fails the pipeline if any test is 20% slower than the baseline file
-          pytest --benchmark-compare=./ci_baseline.json \
-                 --benchmark-compare-fail=mean:25% \
-                 --benchmark-warmup=on \
-                 --benchmark-min-rounds=10 \
-                 benchmark
+        run: uv run pytest --benchmark-compare=./ci_baseline.json \
+                           --benchmark-compare-fail=mean:25% \
+                           --benchmark-warmup=on \
+                           --benchmark-min-rounds=10 \
+                           benchmark
