@@ -1,7 +1,17 @@
-## Unreleased
+## abcd-graph 0.5.0-beta (unreleased)
 
 ### Features
-- Added top level ABCD object, an alternative interface that effectively adds a .sample() method to the ABCDParams. ([#67](https://github.com/AleksanderWWW/abcd-graph/pull/67))
+- Complete rewrite and file restructure to simplify and increase speed.
+- Main class ABCD stores parameters, sample and ABCD graph with the .sample() method
+- ABCD.sample() returns and ABCDSample object that store the graph and community data
+- ABCD has a .fit(ABCDSample) method to fit the ABCD parameters to the empirical parameters observed in the sample.
+- readthedocs style documentation
+
+### Enhancements
+- More comprehensive testing
+- Run benchmarks in CI
+- Migrate all workflows to uv
+
 
 ## abcd-graph 0.4.1
 
