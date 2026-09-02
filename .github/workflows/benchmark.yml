@@ -25,4 +25,4 @@ jobs:
                            --benchmark-compare-fail=mean:25% \
                            --benchmark-warmup=on \
                            --benchmark-min-rounds=10 \
-                           benchmark
+                           benchmarks
