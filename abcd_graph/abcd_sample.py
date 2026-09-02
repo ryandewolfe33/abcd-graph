@@ -193,7 +193,7 @@ class ABCDSample:
         """
         if self.eta == 1:
             return 1.0
-        degrees = self.to_sparse().sum(axis=1) // 2
+        degrees = self.degree_sequence
         coms_per_node = self.membership_matrix.sum(axis=0)
         inlier_mask = coms_per_node > 0
         rho = np.corrcoef(degrees[inlier_mask], coms_per_node[inlier_mask])[0, 1]
