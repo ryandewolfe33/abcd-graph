@@ -19,6 +19,21 @@ from abcd_graph.samplers import sample_community_sizes, sample_degrees
 MAX_N = np.iinfo(np.uint32).max
 
 
+class TqdmToLogger:
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.buf = ""
+
+    def write(self, buf):
+        self.buf = buf.strip("\r\n")
+        if self.buf:
+            self.logger.log(self.level, self.buf)
+
+    def flush(self):
+        pass
+
+
 def format_duration(seconds: float):
     if seconds >= 1.0:
         return f"{seconds:.3f}s"
@@ -82,8 +97,8 @@ def generate_graph(
     logger.info("Building Community Graphs")
     start = perf_counter()
     # TODO Parallel this loop
-    # TODO logging for this progess bar
-    for i in trange(n_coms, disable=logger.getEffectiveLevel() > 20):
+    tqdm_out = TqdmToLogger(logger, level=logging.INFO)
+    for i in trange(n_coms, file=tqdm_out):
         generate_community_graph_task(
             i,
             graph,
