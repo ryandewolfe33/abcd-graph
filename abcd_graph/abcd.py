@@ -578,6 +578,23 @@ class ABCD:
             sequence or community size sequence take priority and force samples to have exactly
             the same sequence.
         """
+        # Some combination of parameter must or must not be set together
+        if do_not_set is not None:
+            if "degree_sequence" not in do_not_set and "n" in do_not_set:
+                raise ValueError(
+                    """Can not fit degree sequence but not n. Either add 'degree_sequence' or remove 'n'
+                    from do_not_set."""
+                )
+
+            if "community_size_sequence" not in do_not_set and (
+                "n" in do_not_set or "outliers" in do_not_set or "eta" in do_not_set
+            ):
+                warn(
+                    """Fitting community_size_sequence but not 'n', 'outliers', or 'eta' is not well
+                    tested, consider fitting all.""",
+                    stacklevel=2,
+                )
+
         parameters = [
             "n",
             "xi",
