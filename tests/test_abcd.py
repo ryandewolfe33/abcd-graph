@@ -64,8 +64,6 @@ def test_seed(n):
     npt.assert_array_equal(sample2.to_dense(), sample2.to_dense())
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning:powerlaw*")
-@pytest.mark.filterwarnings("ignore::RuntimeWarning:powerlaw*")
 def test_fit():
     edges = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [1, 3]], dtype=np.uint32)
     coms = sp.csr_array([[1, 1, 1, 0, 0], [0, 0, 1, 1, 0]])
@@ -85,3 +83,34 @@ def test_fit():
     assert abcd.community_size_exponent != 1.5
     assert abcd.degree_sequence is None
     assert abcd.community_size_sequence is None
+
+
+def test_fit_with_sequences():
+    edges = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [1, 3]], dtype=np.uint32)
+    coms = sp.csr_array([[1, 1, 1, 0, 0], [0, 0, 1, 1, 0]])
+    sample = ABCDSample(edges, coms)
+    abcd = ABCD(100)
+
+    abcd.fit(sample, do_not_set=None)
+
+    assert abcd.n == 5
+    assert abcd.xi == 0.5
+    assert abcd.eta == 1.25
+    assert abcd.min_degree == 2
+    assert abcd.max_degree == 3
+    assert abcd.degree_exponent != 2.5
+    assert abcd.min_community_size == 2
+    assert abcd.max_community_size == 3
+    assert abcd.community_size_exponent != 1.5
+    npt.assert_array_equal(abcd.degree_sequence, np.array([2, 3, 2, 3, 2]))
+    npt.assert_array_equal(abcd.community_size_sequence, np.array([3, 2]))
+
+
+def test_fit_degree_sequence_but_not_n_raises():
+    edges = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [1, 3]], dtype=np.uint32)
+    coms = sp.csr_array([[1, 1, 1, 0, 0], [0, 0, 1, 1, 0]])
+    sample = ABCDSample(edges, coms)
+    abcd = ABCD(100)
+
+    with pytest.raises(ValueError):
+        abcd.fit(sample, do_not_set=["n"])
