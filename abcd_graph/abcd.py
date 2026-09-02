@@ -294,7 +294,7 @@ class ABCD:
                 not isinstance(self.degree_exponent, (float, np.floating))
                 or self.degree_exponent < 0
             ):
-                raise ValueError("rho must be positive")
+                raise ValueError("degree exponent must be positive")
             elif self.degree_exponent < 2 or self.degree_exponent > 3:
                 warn(
                     f"Typical degree exponents are between 2 and 3, got {self.degree_exponent}",
