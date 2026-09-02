@@ -73,7 +73,7 @@ def fit_powerlaw_exponent(
         weights = domain ** (-exponent)
         return len(samples) * np.log(np.sum(weights)) + exponent * observed_constant
 
-    sol = minimize_scalar(objective, bounds=[1.0, 5.0], method="Bounded")
+    sol = minimize_scalar(objective, bounds=[0.0, 5.0], method="Bounded")
     return sol.x
 
 
