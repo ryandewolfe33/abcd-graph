@@ -1,8 +1,8 @@
 import numpy as np
-import powerlaw
 import scipy.sparse as sp
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
+from scipy.optimize import minimize_scalar
 
 
 @njit
@@ -28,6 +28,53 @@ def icdf(points: ArrayLike, sequence: ArrayLike, weights=None) -> NDArray[np.flo
     cdf /= cdf[-1]
     icdf = 1 - cdf
     return icdf
+
+
+def fit_powerlaw_exponent(
+    samples: NDArray[np.uint32],
+):
+    """Find the parameters of a discrete truncated power-law
+    distribution for the given samples via maximum-likelihood.
+    Sets the bounds to the minimum and maximum observed samples
+    and computes the optimal exponent.
+
+    Parameters
+    ----------
+    samples: NDArray
+        An array of samples to which we fit the parameters
+
+    Returns
+    -------
+    exponent: float
+        The fit exponent.
+
+    x_min: int
+        The lower bound on the fit distribution, will be the smallest
+        value sampled.
+
+    x_max: int
+        The fit (or passed) upper bound on the fit distribution.
+    """
+    x_min = np.min(samples)
+    x_max = np.max(samples)
+
+    values, counts = np.unique_counts(samples)
+    x_frequency = np.zeros(x_max - x_min + 1, dtype=np.float64)
+    x_frequency[values - x_min] = counts
+
+    domain = np.arange(x_min, x_max + 1, dtype=np.float64)
+    log_domain = np.log(domain)
+
+    observed_constant = np.sum(x_frequency * log_domain)
+
+    # Log-likelihood equation for truncated power-law, negated
+    # since scipy has a minimizer
+    def objective(exponent):
+        weights = domain ** (-exponent)
+        return len(samples) * np.log(np.sum(weights)) + exponent * observed_constant
+
+    sol = minimize_scalar(objective, bounds=[1.0, 5.0], method="Bounded")
+    return sol.x
 
 
 class ABCDSample:
@@ -194,13 +241,7 @@ class ABCDSample:
         float
         """
         degree_sequence = self.degree_sequence
-        min_degree = np.min(degree_sequence)
-        exponent = powerlaw.Fit(
-            degree_sequence,
-            discrete=True,
-            verbose=False,
-            xmin=min_degree,
-        ).power_law.alpha
+        exponent = fit_powerlaw_exponent(degree_sequence)
         return exponent
 
     @property
@@ -242,13 +283,7 @@ class ABCDSample:
         float
         """
         size_sequence = self.community_size_sequence
-        min_size = np.min(size_sequence)
-        exponent = powerlaw.Fit(
-            size_sequence,
-            discrete=True,
-            verbose=False,
-            xmin=min_size,
-        ).power_law.alpha
+        exponent = fit_powerlaw_exponent(size_sequence)
         return exponent
 
     def to_sparse(self, matrix: bool = False) -> sp.csr_array | sp.csr_matrix:
