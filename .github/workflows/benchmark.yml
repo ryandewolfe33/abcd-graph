@@ -21,7 +21,7 @@ jobs:
         uses: ./.github/actions/build
 
       - name: Benchmark
-        run: uv run pytest --benchmark-compare=./ci_baseline.json \
+        run: uv run pytest --benchmark-compare=ci_baseline.json \
                            --benchmark-compare-fail=mean:25% \
                            --benchmark-warmup=on \
                            --benchmark-min-rounds=10 \
