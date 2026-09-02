@@ -188,41 +188,55 @@ If you use the ABCD model in an academic work, please consider citing the follow
 ### ABCD (communities form a partition)
 ```bibtex
 @article{abcd,
-    title={Artificial Benchmark for Community Detection ({ABCD})—Fast random graph model with community structure},
-    author={Bogumił Kamiński and Paweł Prałat  and François Théberge},
-    journal={Network Science},
+    title = {Artificial Benchmark for Community Detection ({ABCD})—Fast random graph model with community structure},
+    author = {Bogumił Kamiński and Paweł Prałat  and François Théberge},
+    journal = {Network Science},
     volume = {9},
     number = {2},
-    pages={153--178},
-    year={2021},
+    pages = {153--178},
+    year = {2021},
     doi = {10.1017/nws.2020.45},
 }
 ```
 
+### ABCDe (algorithm similarities)
+```bibtex
+@article{abcde,
+    title = {Properties and Performance of the ABCDe Random Graph Model with Community Structure},
+    author = {Bogumił Kamiński and Tomasz Olczak and Bartosz Pankratz and Paweł Prałat and François Théberge},
+    journal = {Big Data Research},
+    year = {2022},
+    volume = {30},
+    pages = {100348},
+    doi = {https://doi.org/10.1016/j.bdr.2022.100348},
+}
+```
+
+
+
 ### ABCD+o (allows outliers)
 ```bibtex
 @article{abcdo,
-    title={Artificial benchmark for community detection with outliers (ABCD+o)},
-    volume={8},
-    doi={10.1007/s41109-023-00552-9},
-    journal={Applied Network Science},
-    author={Bogumił Kamiński and Paweł Prałat and François Théberge},
-    year={2023},
-    articleno={25},
+    title = {Artificial benchmark for community detection with outliers (ABCD+o)},
+    volume = {8},
+    doi = {10.1007/s41109-023-00552-9},
+    journal = {Applied Network Science},
+    author = {Bogumił Kamiński and Paweł Prałat and François Théberge},
+    year = {2023},
+    pages = {25},
 }
 ```
 
 ### ABCD+o2 (allows overlaps and outliers)
 ```bibtex
 @article{abcdoo,
-  title={The artificial benchmark for community detection with outliers and overlapping communities (abcd+ o2)},
-  author={Jordan Barrett and Ryan DeWolfe and Bogumił Kamiński and Paweł Prałat and Aaron Smith and François Théberge},
-  journal={Journal of Complex Networks},
-  volume={14},
-  number={4},
-  pages={cnag023},
-  year={2026},
-  publisher={Oxford University Press}
+  title = {The artificial benchmark for community detection with outliers and overlapping communities (abcd+ o2)},
+  author = {Jordan Barrett and Ryan DeWolfe and Bogumił Kamiński and Paweł Prałat and Aaron Smith and François Théberge},
+  journal = {Journal of Complex Networks},
+  volume = {14},
+  number = {4},
+  pages = {cnag023},
+  year = {2026},
 }
 ```
 
@@ -232,15 +246,14 @@ There are other extensions of ABCD that are not yet covered by this package but 
 Hypergraphs ([available implementation in julia](https://github.com/bkamins/ABCDHypergraphGenerator.jl))
 ```bibtex
 @article{habcd,
-    title={Hypergraph Artificial Benchmark for Community Detection (h--{ABCD})},
-    author={Bogumił Kamiński and Paweł Prałat and François Théberge},
-    journal={Journal of Complex Networks},
-    volume={11},
-    number={4},
-    pages={cnad028},
-    year={2023},
-    publisher={Oxford University Press},
-    doi={10.1093/comnet/cnad028}
+    title = {Hypergraph Artificial Benchmark for Community Detection (h--{ABCD})},
+    author = {Bogumił Kamiński and Paweł Prałat and François Théberge},
+    journal = {Journal of Complex Networks},
+    volume = {11},
+    number = {4},
+    pages = {cnad028},
+    year = {2023},
+    doi = {10.1093/comnet/cnad028}
 }
 ```
 
