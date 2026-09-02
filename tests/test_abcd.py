@@ -67,7 +67,7 @@ def test_seed(n):
 @pytest.mark.filterwarnings("ignore::UserWarning:powerlaw*")
 @pytest.mark.filterwarnings("ignore::RuntimeWarning:powerlaw*")
 def test_fit():
-    edges = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]], dtype=np.uint32)
+    edges = np.array([[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [1, 3]], dtype=np.uint32)
     coms = sp.csr_array([[1, 1, 1, 0, 0], [0, 0, 1, 1, 0]])
     sample = ABCDSample(edges, coms)
     abcd = ABCD(100)
@@ -75,10 +75,10 @@ def test_fit():
     abcd.fit(sample)
 
     assert abcd.n == 5
-    assert abcd.xi == 0.4
+    assert abcd.xi == 0.5
     assert abcd.eta == 1.25
     assert abcd.min_degree == 2
-    assert abcd.max_degree == 2
+    assert abcd.max_degree == 3
     assert abcd.degree_exponent != 2.5
     assert abcd.min_community_size == 2
     assert abcd.max_community_size == 3
