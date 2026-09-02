@@ -190,13 +190,13 @@ class ABCD:
         of vertices minus the number of outliers.
 
     rho_tol: float, default=0.05
-        Tolerance for rho optmiziation. Only used if rho is not 0.
+        Tolerance for rho optimiziation. Only used if rho is not 0.
 
     alpha_min: float, default=-60.0
         Minimum bound in rho optimization.  Only used if rho is not 0.
 
     alpha_max: float, default=60.0
-        Maximum bound in rho optmization.  Only used if rho is not 0.
+        Maximum bound in rho optimization.  Only used if rho is not 0.
 
     alpha_iters: int, default=10
         Number of alphas to try in rho optimization.  Only used if rho is not 0.
@@ -552,7 +552,7 @@ class ABCD:
         do_not_set: Container | None = {"degree_sequence", "community_size_sequence"},
     ):
         """Set parameters of this ABCD class to the empirical values from another graph.
-        Measureable parameters are:
+        Measurable parameters are:
 
             * n
             * xi
