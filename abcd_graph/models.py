@@ -8,7 +8,6 @@ from numpy.random import Generator
 from numpy.typing import NDArray
 
 
-# Define the function interface contract structurally
 class Model(Protocol):
     def __call__(
         self, node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
@@ -39,7 +38,10 @@ def chunglu_model(
 
 @njit(nogil=True)
 def configuration_model(
-    node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
+    node_ids: NDArray[np.uint32],
+    degrees: NDArray[np.uint32],
+    rng: Generator,
+    out: NDArray[np.uint32] | None = None,
 ) -> NDArray[np.uint32]:
     """Sample a random graph with the given degree sequence.
 
@@ -55,10 +57,34 @@ def configuration_model(
     rng: Generator
         numpy.random.Generator object used for randomness.
     """
-    stubs = np.repeat(node_ids, degrees)
-    rng.shuffle(stubs)
-    edges = stubs.reshape(-1, 2)
-    return edges
+    if out is None:
+        n_stubs = np.sum(degrees)
+        out = np.empty((n_stubs // 2, 2), dtype=np.uint32)
+
+    next_index = 0
+    for node, degree in zip(node_ids, degrees):
+        for i in range(next_index, next_index + degree):
+            r_i = i if i < out.shape[0] else i - out.shape[0]
+            c_i = 0 if i < out.shape[0] else 1
+            out[r_i, c_i] = node
+        next_index += degree
+
+    # Inplace Fisher-Yates shuffle all elements of 2d array
+    n_stubs = out.shape[0] * out.shape[1]
+    for i in range(n_stubs):
+        i = n_stubs - i - 1
+        j = rng.integers(0, i + 1)
+        # Map to 2d (row, col) coordinates
+        r_i = i if i < out.shape[0] else i - out.shape[0]
+        c_i = 0 if i < out.shape[0] else 1
+        r_j = j if j < out.shape[0] else j - out.shape[0]
+        c_j = 0 if j < out.shape[0] else 1
+        # Swap the elements
+        temp = out[r_i, c_i]
+        out[r_i, c_i] = out[r_j, c_j]
+        out[r_j, c_j] = temp
+
+    return out
 
 
 @njit(inline="always")
