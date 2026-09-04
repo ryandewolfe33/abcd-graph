@@ -123,7 +123,7 @@ def _assign_outlier_degrees(
     if len(available_indices) > n_outliers:
         chosen_indices = rng.choice(available_indices, size=n_outliers, replace=False)
     else:
-        chosen_indices = np.argsort(degrees)[:n_outliers]
+        chosen_indices = np.argpartition(degrees, n_outliers)[:n_outliers]
     outlier_degrees = degrees[chosen_indices]
 
     remaining_mask = np.ones_like(degrees, dtype=np.bool)
