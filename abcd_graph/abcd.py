@@ -68,18 +68,14 @@ def generate_community_graph_task(
     com_data = community_degrees_data[
         community_degrees_indptr[i] : community_degrees_indptr[i + 1]
     ]
-    community_graph = model(
-        com_indices,
-        com_data,
-        rng,
-    )
+    community_graph = graph[community_edges_indptr[i] : community_edges_indptr[i + 1]]
+    model(com_indices, com_data, rng, out=community_graph)
     rewire(
         community_graph,
         get_edge_type(community_graph),
         rng,
         max_swap_attempts_per_bad_edge,
     )
-    graph[community_edges_indptr[i] : community_edges_indptr[i + 1]] = community_graph
 
 
 def generate_graph(
