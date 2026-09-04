@@ -8,10 +8,10 @@ from abcd_graph import ABCD
 from abcd_graph.abcd_sample import ABCDSample
 
 
-@pytest.mark.parametrize("n", [500, 1000])
+@pytest.mark.parametrize("n", [500, 1000, 2000])
 @pytest.mark.parametrize("xi", [0.2, 0.5, 0.7])
 def test_abcd(n, xi):
-    rng = np.random.default_rng(seed=1)
+    rng = np.random.default_rng(seed=2)
     abcd = ABCD(n, xi=xi, rng=rng)
     sample = abcd.sample()
 
