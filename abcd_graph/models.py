@@ -8,15 +8,21 @@ from numpy.random import Generator
 from numpy.typing import NDArray
 
 
-# Define the function interface contract structurally
 class Model(Protocol):
     def __call__(
-        self, node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
+        self,
+        node_ids: NDArray[np.uint32],
+        degrees: NDArray[np.uint32],
+        rng: Generator,
+        out: NDArray[np.uint32] | None = None,
     ) -> NDArray[np.uint32]: ...
 
 
 def chunglu_model(
-    node_ids: NDArray[np.uint32], degrees: NDArray[np.integer[Any]], rng: Generator
+    node_ids: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
+    rng: Generator,
+    out: NDArray[np.uint32] | None = None,
 ) -> NDArray[np.uint32]:
     """Sample a random graph with, on expectation, the given degree sequence.
 
@@ -31,15 +37,24 @@ def chunglu_model(
 
     rng: Generator
         numpy.random.Generator object used for randomness.
+
+    out: NDArray[np.uint32] | None (default=None)
+        If passed, write output into this array inplace. Can be passed as a view of a larger array.
     """
-    node_probs = degrees / degrees.sum()
-    edges = rng.choice(node_ids, size=np.sum(degrees), p=node_probs).reshape(-1, 2)
+    sum_degrees = np.sum(degrees)
+    node_probs = degrees / sum_degrees
+    edges = rng.choice(node_ids, size=(sum_degrees // 2, 2), p=node_probs)
+    if out is not None:
+        out[:] = edges
     return edges
 
 
 @njit(nogil=True)
 def configuration_model(
-    node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
+    node_ids: NDArray[np.uint32],
+    degrees: NDArray[np.uint32],
+    rng: Generator,
+    out: NDArray[np.uint32] | None = None,
 ) -> NDArray[np.uint32]:
     """Sample a random graph with the given degree sequence.
 
@@ -54,11 +69,40 @@ def configuration_model(
 
     rng: Generator
         numpy.random.Generator object used for randomness.
+
+    out: NDArray[np.uint32] | None (default=None)
+        If passed, write output into this array inplace. Can be passed as a view of a larger array.
     """
-    stubs = np.repeat(node_ids, degrees)
-    rng.shuffle(stubs)
-    edges = stubs.reshape(-1, 2)
-    return edges
+    n_stubs = np.sum(degrees)
+    if out is None:
+        out = np.empty((n_stubs // 2, 2), dtype=np.uint32)
+    else:
+        assert out.shape == (n_stubs // 2, 2)
+
+    next_index = 0
+    for node, degree in zip(node_ids, degrees):
+        for i in range(next_index, next_index + degree):
+            r_i = i if i < out.shape[0] else i - out.shape[0]
+            c_i = 0 if i < out.shape[0] else 1
+            out[r_i, c_i] = node
+        next_index += degree
+
+    # Inplace Fisher-Yates shuffle all elements of 2d array
+    n_stubs = out.shape[0] * out.shape[1]
+    for i in range(n_stubs):
+        i = n_stubs - i - 1
+        j = rng.integers(0, i + 1)
+        # Map to 2d (row, col) coordinates
+        r_i = i if i < out.shape[0] else i - out.shape[0]
+        c_i = 0 if i < out.shape[0] else 1
+        r_j = j if j < out.shape[0] else j - out.shape[0]
+        c_j = 0 if j < out.shape[0] else 1
+        # Swap the elements
+        temp = out[r_i, c_i]
+        out[r_i, c_i] = out[r_j, c_j]
+        out[r_j, c_j] = temp
+
+    return out
 
 
 @njit(inline="always")

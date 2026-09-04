@@ -105,6 +105,7 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "B008", # Do not perform function call in defaults
+    "B905", # Do not require strict in zip, not compatible with numba
 ]
 
 [tool.ruff.lint.per-file-ignores]
