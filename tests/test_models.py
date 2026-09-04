@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from utils import assert_no_bad_edges
 
-from abcd_graph.models import chunglu_model, configuration_model, rewire
+from abcd_graph.models import chunglu_model, configuration_model, get_edge_type, rewire
 
 
 def test_chunglu_model():
@@ -45,7 +45,7 @@ def test_rewire_loops():
         dtype=np.uint32,
     )
 
-    n_good_edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, get_edge_type(edges), rng)
 
     assert edges.shape == (5, 2)
     assert edges.dtype == np.uint32
@@ -65,7 +65,7 @@ def test_rewire_multiedges():
         dtype=np.uint32,
     )
 
-    n_good_edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, get_edge_type(edges), rng)
 
     assert edges.shape == (4, 2)
     assert edges.dtype == np.uint32
@@ -77,7 +77,7 @@ def test_rewire_swap_two_bad_edges():
     rng = np.random.default_rng(seed=1)
     edges = np.array([[0, 0], [1, 2], [1, 2]], dtype=np.uint32)
 
-    n_good_edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, get_edge_type(edges), rng)
 
     assert edges.shape == (3, 2)
     assert edges.dtype == np.uint32
@@ -92,7 +92,7 @@ def test_rewire_many():
         dtype=np.uint32,
     )
 
-    n_good_edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, get_edge_type(edges), rng)
 
     assert edges.shape == (8, 2)
     assert edges.dtype == np.uint32
@@ -104,7 +104,7 @@ def test_rewire_failure():
     rng = np.random.default_rng(seed=1)
     edges = np.array([[0, 0], [0, 1]], dtype=np.uint32)
 
-    n_good_edges = rewire(edges, rng)
+    n_good_edges = rewire(edges, get_edge_type(edges), rng)
 
     assert edges.shape == (2, 2)
     assert edges.dtype == np.uint32

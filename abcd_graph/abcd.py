@@ -13,7 +13,13 @@ from tqdm import trange
 from abcd_graph.abcd_sample import ABCDSample, icdf
 from abcd_graph.degrees import assign_degrees, split_degrees
 from abcd_graph.membership import build_membership_matrix
-from abcd_graph.models import Model, chunglu_model, configuration_model, rewire
+from abcd_graph.models import (
+    Model,
+    chunglu_model,
+    configuration_model,
+    get_edge_type,
+    rewire,
+)
 from abcd_graph.samplers import sample_community_sizes, sample_degrees
 
 MAX_N = np.iinfo(np.uint32).max
@@ -67,7 +73,12 @@ def generate_community_graph_task(
         com_data,
         rng,
     )
-    rewire(community_graph, rng, max_swap_attempts_per_bad_edge)
+    rewire(
+        community_graph,
+        get_edge_type(community_graph),
+        rng,
+        max_swap_attempts_per_bad_edge,
+    )
     graph[community_edges_indptr[i] : community_edges_indptr[i + 1]] = community_graph
 
 
@@ -114,7 +125,9 @@ def generate_graph(
     logger.info(f"Finished in {format_duration(end - start)}.")
     logger.info("Global Rewiring")
     start = perf_counter()
-    n_good_edges = rewire(graph, rng, max_swap_attempts_per_bad_edge)
+    n_good_edges = rewire(
+        graph, get_edge_type(graph), rng, max_swap_attempts_per_bad_edge
+    )
     end = perf_counter()
     logger.info(f"Finished in {format_duration(end - start)}.")
     if graph.shape[0] - n_good_edges:

@@ -1,9 +1,9 @@
 from typing import Any, Protocol
 
 import numpy as np
-from numba import njit
+from numba import from_dtype, njit
 from numba.typed import List, Set
-from numba.types import uint64
+from numba.types import UniTuple
 from numpy.random import Generator
 from numpy.typing import NDArray
 
@@ -62,60 +62,47 @@ def configuration_model(
 
 
 @njit(inline="always")
-def make_edge_id(
-    edge: NDArray[np.uint32],
-) -> uint64:
+def make_edge_tuple(edge: NDArray[np.integer[Any]]) -> UniTuple(np.integer[Any], 2):
     high, low = edge[0], edge[1]
     if high < low:
         high, low = low, high
-    return (uint64(high) << 32) | uint64(low)
-
-
-@njit(inline="always")
-def edge_from_id(
-    edge_id: uint64,
-) -> NDArray[np.uint32]:
-    edge = np.empty(2, dtype=np.uint32)
-    edge[0] = np.uint32(edge_id >> 32)
-    edge[1] = np.uint32(edge_id & 0xFFFFFFFF)
-    return edge
+    return (low, high)
 
 
 @njit(inline="always")
 def swap(
-    edge1: NDArray[np.uint32],
-    edge2: NDArray[np.uint32],
+    edge1: UniTuple(np.integer[Any], 2),
+    edge2: UniTuple(np.integer[Any], 2),
     rng: Generator,
-):
-    edge1 = edge1.copy()
-    edge2 = edge2.copy()
+) -> (UniTuple(np.integer[Any], 2), UniTuple(np.integer[Any], 2)):
     if rng.uniform() > 0.5:
-        edge1[0], edge2[0] = edge2[0], edge1[0]
-    else:
-        edge1[0], edge2[1] = edge2[1], edge1[0]
-    return edge1, edge2
+        return (edge1[0], edge2[0]), (edge2[0], edge1[0])
+    return (edge1[0], edge2[1]), (edge2[1], edge1[0])
 
 
 @njit(inline="always")
 def is_bad_swap(
-    edge1: NDArray[np.uint32],
-    edge2: NDArray[np.uint32],
-    good_edges: Set[uint64],
+    edge1: NDArray[np.integer[Any]],
+    edge2: NDArray[np.integer[Any]],
+    good_edges: Set[UniTuple(np.integer[Any], 2)],
 ) -> bool:
     if edge1[0] == edge1[1] or edge2[0] == edge2[1]:
         return True
-    edge1_id = make_edge_id(edge1)
-    edge2_id = make_edge_id(edge2)
-    if edge1_id == edge2_id:
+    if edge1 == edge2:
         return True
-    if edge1_id in good_edges or edge2_id in good_edges:
+    if edge1 in good_edges or edge2 in good_edges:
         return True
     return False
 
 
+def get_edge_type(edges: NDArray[np.integer[Any]]) -> UniTuple(np.integer[Any], 2):
+    return UniTuple(from_dtype(edges.dtype), 2)
+
+
 @njit(nogil=True)
 def rewire(
-    edges: NDArray[np.uint32],
+    edges: NDArray[np.integer[Any]],
+    edge_type: UniTuple(np.integer[Any], 2),
     rng: Generator,
     max_swap_attempts_per_bad_edge: int = 5,
 ) -> int:
@@ -124,8 +111,13 @@ def rewire(
     Parameters
     ----------
 
-    edges: NDArray[np.uint32]
+    edges: NDArray[np.integer[Any]]
         Edge list with shape (n_edges, 2) to be rewired. Will be altered in place.
+
+    node_dtype: np.integer[Any]
+        dtype of nodes stored in the edges list. Required for numba pre-compilation
+        and is assumed to be correct. Consistency checks should be made before
+        calling this function.
 
     rng: Generator
         numpy.random.Generator object to use for randomness.
@@ -136,69 +128,67 @@ def rewire(
     """
     # Move good edges to the front, add their hashes to a set, and
     # make a List-backed-queue of bad edges
-    good_edges = Set.empty(uint64)
-    bad_queue = List.empty_list(uint64)
+    good_edges = Set.empty(edge_type)
+    bad_queue = List.empty_list(edge_type)
     n_good_edges = 0
     for i in range(edges.shape[0]):
-        edge = edges[i]
-        edge_id = make_edge_id(edge)
-        if edge[0] != edge[1] and edge_id not in good_edges:
-            good_edges.add(edge_id)
+        edge = make_edge_tuple(edges[i])
+        if edge[0] != edge[1] and edge not in good_edges:
+            good_edges.add(edge)
             edges[n_good_edges] = edge
             n_good_edges += 1
         else:
-            bad_queue.append(edge_id)
+            bad_queue.append(edge)
 
     # Try to resolve the bad edge at the head of bad_queue by trying a swap
     # with a random edge (good or bad, but not the one we are trying to resolve)
     # If the swap would cause a collision, move bad edge to the back of the
     # queue. Repeat until the Queue is empty or we give up.
-    next_index = len(bad_queue)
+
+    # Store bad edges in the indices 0:queue_len and keep at the front
+    # of the list
+    next_index = len(bad_queue) - 1
+    queue_len = len(bad_queue)
+
     for _ in range(len(bad_queue) * max_swap_attempts_per_bad_edge):
-        if len(bad_queue) == 0:
+        if queue_len == 0:
             break
-        else:
-            next_index = (next_index + 1) % len(bad_queue)
-        bad_edge_id = bad_queue[next_index]
-        bad_edge = edge_from_id(bad_edge_id)
+
+        next_index = (next_index + 1) % queue_len
+        bad_edge = bad_queue[next_index]
         choose_from_good_edges = rng.uniform() < n_good_edges / (
-            n_good_edges + len(bad_queue) - 1
-        )
+            n_good_edges + queue_len - 1
+        )  # Always True if queue_len == 1
         if choose_from_good_edges:
             swap_index = rng.integers(0, n_good_edges)
-            swap_candidate_edge = edges[swap_index]
+            swap_candidate_edge = make_edge_tuple(edges[swap_index])
             new_edge1, new_edge2 = swap(bad_edge, swap_candidate_edge, rng)
             if not is_bad_swap(new_edge1, new_edge2, good_edges):
                 edges[swap_index] = new_edge1
                 edges[n_good_edges] = new_edge2
                 n_good_edges += 1
-                good_edges.add(make_edge_id(new_edge1))
-                good_edges.add(make_edge_id(new_edge2))
-                good_edges.discard(make_edge_id(swap_candidate_edge))
-                bad_queue.pop(next_index)
+                good_edges.add(new_edge1)
+                good_edges.add(new_edge2)
+                good_edges.discard(swap_candidate_edge)
+                bad_queue[next_index] = bad_queue[queue_len - 1]
+                queue_len -= 1
         else:
-            swap_offset = rng.integers(1, len(bad_queue))  # don't choose current head
-            swap_index = (next_index + swap_offset) % len(bad_queue)
-            swap_candidate_edge_id = bad_queue[swap_index]
-            swap_candidate_edge = edge_from_id(swap_candidate_edge_id)
+            swap_offset = rng.integers(1, queue_len)  # don't choose current head
+            swap_index = (next_index + swap_offset) % queue_len
+            swap_candidate_edge = bad_queue[swap_index]
             new_edge1, new_edge2 = swap(bad_edge, swap_candidate_edge, rng)
             if not is_bad_swap(new_edge1, new_edge2, good_edges):
                 edges[n_good_edges] = new_edge1
-                n_good_edges += 1
-                edges[n_good_edges] = new_edge2
-                good_edges.add(make_edge_id(new_edge1))
-                good_edges.add(make_edge_id(new_edge2))
-                n_good_edges += 1
-                if swap_index < next_index:  # Pop larger index first
-                    bad_queue.pop(next_index)
-                    bad_queue.pop(swap_index)
-                else:
-                    bad_queue.pop(swap_index)
-                    bad_queue.pop(next_index)
+                edges[n_good_edges + 1] = new_edge2
+                n_good_edges += 2
+                good_edges.add(new_edge1)
+                good_edges.add(new_edge2)
+                bad_queue[next_index] = bad_queue[queue_len - 1]
+                bad_queue[swap_index] = bad_queue[queue_len - 2]
+                queue_len -= 2
 
     # Write bad edges that failed to swap back into the edge list
-    for i in range(len(bad_queue)):
-        bad_edge = edge_from_id(bad_queue[i])
-        edges[n_good_edges + i] = bad_edge
+    for i in range(queue_len):
+        edges[n_good_edges + i] = bad_queue[i]
 
     return n_good_edges
