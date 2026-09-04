@@ -18,6 +18,20 @@ def test_chunglu_model():
     assert edges.shape == (64, 2)
 
 
+def test_chunglu_model_inplace():
+    rng = np.random.default_rng(seed=1)
+    node_ids = np.arange(32, dtype=np.uint32)
+    degrees = np.full(32, 4, dtype=np.int64)
+    edges = np.empty((64, 2), dtype=np.uint32)
+
+    chunglu_model(node_ids, degrees, rng)
+
+    ids, counts = np.unique(edges, return_counts=True)
+    assert set(ids).issubset(set(node_ids))
+    assert edges.dtype == np.uint32
+    assert edges.shape == (64, 2)
+
+
 def test_configuration_model():
     rng = np.random.default_rng(seed=1)
     node_ids = np.arange(32, dtype=np.uint32)
@@ -36,7 +50,6 @@ def test_configuration_model_inplace():
     rng = np.random.default_rng(seed=1)
     node_ids = np.arange(32, dtype=np.uint32)
     degrees = np.full(32, 4, dtype=np.int64)
-
     edges = np.empty((64, 2), dtype=np.uint32)
 
     configuration_model(node_ids, degrees, rng, out=edges)

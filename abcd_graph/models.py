@@ -10,12 +10,19 @@ from numpy.typing import NDArray
 
 class Model(Protocol):
     def __call__(
-        self, node_ids: NDArray[np.uint32], degrees: NDArray[np.uint32], rng: Generator
+        self,
+        node_ids: NDArray[np.uint32],
+        degrees: NDArray[np.uint32],
+        rng: Generator,
+        out: NDArray[np.uint32] | None = None,
     ) -> NDArray[np.uint32]: ...
 
 
 def chunglu_model(
-    node_ids: NDArray[np.uint32], degrees: NDArray[np.integer[Any]], rng: Generator
+    node_ids: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
+    rng: Generator,
+    out: NDArray[np.uint32] | None = None,
 ) -> NDArray[np.uint32]:
     """Sample a random graph with, on expectation, the given degree sequence.
 
@@ -30,9 +37,15 @@ def chunglu_model(
 
     rng: Generator
         numpy.random.Generator object used for randomness.
+
+    out: NDArray[np.uint32] | None (default=None)
+        If passed, write output into this array inplace. Can be passed as a view of a larger array.
     """
-    node_probs = degrees / degrees.sum()
-    edges = rng.choice(node_ids, size=np.sum(degrees), p=node_probs).reshape(-1, 2)
+    sum_degrees = np.sum(degrees)
+    node_probs = degrees / sum_degrees
+    edges = rng.choice(node_ids, size=(sum_degrees // 2, 2), p=node_probs)
+    if out is not None:
+        out[:] = edges
     return edges
 
 
@@ -56,10 +69,15 @@ def configuration_model(
 
     rng: Generator
         numpy.random.Generator object used for randomness.
+
+    out: NDArray[np.uint32] | None (default=None)
+        If passed, write output into this array inplace. Can be passed as a view of a larger array.
     """
+    n_stubs = np.sum(degrees)
     if out is None:
-        n_stubs = np.sum(degrees)
         out = np.empty((n_stubs // 2, 2), dtype=np.uint32)
+    else:
+        assert out.shape == (n_stubs // 2, 2)
 
     next_index = 0
     for node, degree in zip(node_ids, degrees):
