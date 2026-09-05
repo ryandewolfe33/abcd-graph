@@ -123,7 +123,7 @@ def _assign_outlier_degrees(
     if len(available_indices) > n_outliers:
         chosen_indices = rng.choice(available_indices, size=n_outliers, replace=False)
     else:
-        chosen_indices = np.argsort(degrees)[:n_outliers]
+        chosen_indices = np.argpartition(degrees, n_outliers)[:n_outliers]
     outlier_degrees = degrees[chosen_indices]
 
     remaining_mask = np.ones_like(degrees, dtype=np.bool)
@@ -143,12 +143,14 @@ def _assign_degrees(
     assigned_degrees = np.empty_like(degrees)
     is_open_mask = np.ones_like(assigned_degrees, dtype=np.bool)
     n_coms_exp_alpha = n_coms.astype(np.float64) ** alpha
+
+    # Group decisions since there are relatively few unique degrees
     degree, counts = np.unique_counts(degrees)
     # Sort by degree descending
     degree_argsort = np.argsort(degree)[::-1]
     degree = degree[degree_argsort]
     counts = counts[degree_argsort]
-    # Group decisions since there are relatively few unique degrees
+
     for d, count in zip(degree, counts, strict=True):
         allowed_indices = np.where(is_open_mask & (d <= thresholds))[0]
         if len(allowed_indices) <= count:
@@ -174,14 +176,21 @@ def _assign_degrees(
                 all_indices_with_max_needed_threshold = np.where(
                     is_open_mask & (thresholds == min_needed_threshold)
                 )[0]
-                probs = n_coms_exp_alpha[all_indices_with_max_needed_threshold]
-                probs /= np.sum(probs)
-                chosen_max_indices = rng.choice(
-                    all_indices_with_max_needed_threshold,
-                    size=n_of_max_threshold,
-                    replace=False,
-                    p=probs,
-                )
+                if alpha != 0:
+                    probs = n_coms_exp_alpha[all_indices_with_max_needed_threshold]
+                    probs /= np.sum(probs)
+                    chosen_max_indices = rng.choice(
+                        all_indices_with_max_needed_threshold,
+                        size=n_of_max_threshold,
+                        replace=False,
+                        p=probs if alpha > 0 else None,
+                    )
+                else:  # Specialized path is alpha == 0 is much faster
+                    chosen_max_indices = rng.choice(
+                        all_indices_with_max_needed_threshold,
+                        size=n_of_max_threshold,
+                        replace=False,
+                    )
                 # Assign degrees and update masks
                 assigned_degrees[next_best_indices_without_max] = d
                 is_open_mask[next_best_indices_without_max] = False
@@ -189,11 +198,18 @@ def _assign_degrees(
                 is_open_mask[chosen_max_indices] = False
         else:
             # Choose `count` indices from allowed_indices proportional to n_coms ** alpha
-            probs = n_coms_exp_alpha[allowed_indices]
-            probs /= np.sum(probs)
-            chosen_indices = chosen_max_indices = rng.choice(
-                allowed_indices, size=count, replace=False, p=probs
-            )
+            if alpha != 0:
+                probs = n_coms_exp_alpha[allowed_indices]
+                probs /= np.sum(probs)
+                chosen_indices = chosen_max_indices = rng.choice(
+                    allowed_indices, size=count, replace=False, p=probs
+                )
+            else:  # Specialized path is alpha == 0 is much faster
+                chosen_indices = chosen_max_indices = rng.choice(
+                    allowed_indices,
+                    size=count,
+                    replace=False,
+                )
             assigned_degrees[chosen_indices] = d
             is_open_mask[chosen_indices] = False
 
@@ -321,18 +337,22 @@ def assign_degrees(
         Array of degrees that is aligned with the membership matrix.
 
     """
-    degrees = np.sort(degrees)[::-1]  # sort degrees descending
+    n_coms = membership_matrix.sum(axis=0)  # number of communities per node
+    # can't have a correlation if all non-outliers have the same number of coms
+    unique_n_coms = np.unique(n_coms)
+    if len(unique_n_coms) == 1 or (len(unique_n_coms) == 2 and 0 in unique_n_coms):
+        rho = 0.0
+
     community_sizes = membership_matrix.sum(axis=1).astype(
         np.uint32
     )  # size of each community
-    n_coms = membership_matrix.sum(axis=0)  # number of communities per node
-    if np.max(n_coms) == 1:
-        rho = 0.0
+
     community_size_matrix = (
         sp.diags_array(community_sizes, format="csr", dtype=np.uint32)
         @ membership_matrix
     )
     min_com_sizes = community_size_matrix.min(axis=0, explicit=True).todense()
+    # minimum community size for each node
 
     n = membership_matrix.shape[1]
     n_outliers = np.sum(n_coms == 0)
