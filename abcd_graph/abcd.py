@@ -2,12 +2,13 @@ import logging
 import sys
 from collections.abc import Callable, Container
 from time import perf_counter
+from typing import Any
 from warnings import warn
 
 import numpy as np
 import scipy.sparse as sp
 from numpy.random import Generator
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike, DTypeLike, NDArray
 from tqdm import trange
 
 from abcd_graph.abcd_sample import ABCDSample, icdf
@@ -21,8 +22,6 @@ from abcd_graph.models import (
     rewire,
 )
 from abcd_graph.samplers import sample_community_sizes, sample_degrees
-
-MAX_N = np.iinfo(np.uint32).max
 
 
 class TqdmToLogger:
@@ -51,71 +50,45 @@ def format_duration(seconds: float):
         return f"{seconds * 1e9:.3f}ns"
 
 
-def generate_community_graph_task(
-    i,
-    graph,
-    community_edges_indptr,
-    community_degrees_indptr,
-    community_degrees_indices,
-    community_degrees_data,
-    model,
-    max_swap_attempts_per_bad_edge,
-    rng: Generator,
-) -> None:
-    com_indices = community_degrees_indices[
-        community_degrees_indptr[i] : community_degrees_indptr[i + 1]
-    ]
-    com_data = community_degrees_data[
-        community_degrees_indptr[i] : community_degrees_indptr[i + 1]
-    ]
-    community_graph = graph[community_edges_indptr[i] : community_edges_indptr[i + 1]]
-    model(com_indices, com_data, rng, out=community_graph)
-    rewire(
-        community_graph,
-        get_edge_type(community_graph),
-        rng,
-        max_swap_attempts_per_bad_edge,
-    )
-
-
 def generate_graph(
     community_degrees: sp.csr_array,
-    background_degrees: NDArray[np.uint32],
+    background_degrees: NDArray[np.integer[Any]],
     model: Model,
     max_swap_attempts_per_bad_edge: int,
     rng: Generator,
     logger: logging.Logger,
+    dtype: DTypeLike,
 ):
     # Add background degrees as the last community
     community_degrees = sp.vstack(
         (community_degrees, sp.csr_array(background_degrees)), format="csr"
     )
-    # Sort communities by volume decreasing
+    # Make indptr for edges in each community
     community_m = community_degrees.sum(axis=1) // 2
-    argsort_community_m = np.argsort(community_m)[::-1]
-    community_degrees = community_degrees[argsort_community_m]
-
-    community_edges_indptr = np.cumsum(community_m[argsort_community_m])
+    community_edges_indptr = np.cumsum(community_m)
     community_edges_indptr = np.insert(community_edges_indptr, 0, 0)
 
-    graph = np.empty((community_edges_indptr[-1], 2), dtype=np.uint32)
-    n_coms = community_degrees.shape[0]
-    rngs = rng.spawn(n_coms)
+    graph = np.empty((community_edges_indptr[-1], 2), dtype=dtype)
+    indices_as_node_ids = community_degrees.indices.astype(dtype)
+
     logger.info("Building Community Graphs")
     start = perf_counter()
     # TODO Parallel this loop
     tqdm_out = TqdmToLogger(logger, level=logging.INFO)
-    for i in trange(n_coms, file=tqdm_out):
-        generate_community_graph_task(
-            i,
-            graph,
-            community_edges_indptr,
-            community_degrees.indptr,
-            community_degrees.indices,
-            community_degrees.data,
-            model,
+    for i in trange(community_degrees.shape[0], file=tqdm_out):
+        com_nodes = indices_as_node_ids[
+            community_degrees.indptr[i] : community_degrees.indptr[i + 1]
+        ]
+        com_degrees = community_degrees.data[
+            community_degrees.indptr[i] : community_degrees.indptr[i + 1]
+        ]
+        com_graph = graph[community_edges_indptr[i] : community_edges_indptr[i + 1]]
+        model(com_nodes, com_degrees, rng, out=com_graph)
+        rewire(
+            com_graph,
+            get_edge_type(com_graph),
+            rng,
             max_swap_attempts_per_bad_edge,
-            rngs[i],
         )
     end = perf_counter()
     logger.info(f"Finished in {format_duration(end - start)}.")
@@ -283,8 +256,6 @@ class ABCD:
     def _validate_params(self):
         if not isinstance(self.n, (int, np.integer)) or self.n < 1:
             raise ValueError("n must be a positive integer")
-        if self.n > MAX_N:
-            raise ValueError(f"n must at most {MAX_N} so it can be stored as a uint32")
 
         if not isinstance(self.xi, (float, np.floating)) or self.xi < 0 or self.xi > 1:
             raise ValueError("xi must be a float between 0 and 1")
@@ -451,8 +422,10 @@ class ABCD:
         else:
             n_outliers = self.outliers
 
+        self.dtype_ = np.min_scalar_type(self.n)
+
         if self.degree_sequence is not None:
-            degree_sequence = np.asarray(self.degree_sequence, dtype=np.uint32)
+            degree_sequence = np.asarray(self.degree_sequence, dtype=self.dtype_)
         else:
             self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
@@ -467,13 +440,14 @@ class ABCD:
                 self.min_degree,
                 max_degree,
                 self.rng,
+                self.dtype_,
             )
             end = perf_counter()
             self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
         if self.community_size_sequence is not None:
             community_size_sequence = np.asarray(
-                self.community_size_sequence, dtype=np.uint32
+                self.community_size_sequence, dtype=self.dtype_
             )
         else:
             self.logger_.info("Generating Degree Sequence")
@@ -490,6 +464,7 @@ class ABCD:
                 max_community_size,
                 self.eta,
                 self.rng,
+                self.dtype_,
             )
             end = perf_counter()
             self.logger_.info(f"Finished in {format_duration(end - start)}.")
@@ -547,6 +522,7 @@ class ABCD:
             self.max_swap_attempts_per_bad_edge,
             self.rng,
             self.logger_,
+            self.dtype_,
         )
         sample_end = perf_counter()
         self.logger_.info(

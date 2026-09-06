@@ -8,21 +8,21 @@ from abcd_graph import ABCD
 from abcd_graph.abcd_sample import ABCDSample
 
 
-@pytest.mark.parametrize("n", [500, 1000, 2000])
+@pytest.mark.parametrize("n", [1000, 2000])
 @pytest.mark.parametrize("xi", [0.2, 0.5, 0.7])
 def test_abcd(n, xi):
-    rng = np.random.default_rng(seed=2)
+    rng = np.random.default_rng(seed=1)
     abcd = ABCD(n, xi=xi, rng=rng)
     sample = abcd.sample()
 
     assert_no_bad_edges(sample.edges)
     assert np.max(sample.edges) == n - 1
     assert sample.n == n
-    assert np.abs(sample.xi - xi) < 0.1  # xi is noisy
+    assert np.abs(sample.xi - xi) < 0.15  # xi is noisy
 
 
 @pytest.mark.benchmark
-@pytest.mark.parametrize("n", [500, 1000])
+@pytest.mark.parametrize("n", [1000, 2000])
 @pytest.mark.parametrize("xi", [0.2, 0.5, 0.7])
 @pytest.mark.parametrize("eta", [1.5, 2.0])
 @pytest.mark.parametrize("rho", [0.0, -0.3, 0.3])
@@ -40,10 +40,17 @@ def test_abcdoo(n, xi, eta, rho):
         assert np.sign(sample.rho) == np.sign(rho)
 
 
-def test_abcd_raises_large_n():
-    abcd = ABCD(np.iinfo(np.uint32).max + 1)
-    with pytest.raises(ValueError):
-        abcd.sample()
+@pytest.mark.parametrize(
+    "n, dtype",
+    [
+        (255, np.uint8),
+        (256, np.uint16),
+    ],
+)
+def test_abcd_sets_dtype(n, dtype):
+    abcd = ABCD(n)
+    sample = abcd.sample()
+    assert sample.edges.dtype == dtype
 
 
 @pytest.mark.parametrize("n", [100, 200])

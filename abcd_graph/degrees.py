@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import scipy.sparse as sp
 from numba import njit
@@ -7,10 +9,10 @@ from numpy.typing import NDArray
 
 @njit(cache=True)
 def _split_community_degree(
-    degrees: NDArray[np.uint32],
-    background_degrees: NDArray[np.uint32],
-    indptr: NDArray[np.uint64],
-    data: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
+    background_degrees: NDArray[np.integer[Any]],
+    indptr: NDArray[np.int32] | NDArray[np.int64],
+    data: NDArray[np.integer[Any]],
     rng: Generator,
 ) -> None:
     for i in range(len(degrees)):
@@ -31,12 +33,12 @@ def _split_community_degree(
 
 @njit(cache=True)
 def make_community_degree_sums_even(
-    community_degrees_indptr: NDArray,
-    community_degrees_indices: NDArray,
-    community_degrees_data: NDArray,
-    background_degrees: NDArray[np.uint32],
+    community_degrees_indptr: NDArray[np.int32] | NDArray[np.int64],
+    community_degrees_indices: NDArray[np.int32] | NDArray[np.int64],
+    community_degrees_data: NDArray[np.integer[Any]],
+    background_degrees: NDArray[np.integer[Any]],
     rng: Generator,
-):
+) -> None:
     for com in range(len(community_degrees_indptr) - 1):
         com_members = community_degrees_indices[
             community_degrees_indptr[com] : community_degrees_indptr[com + 1]
@@ -44,7 +46,7 @@ def make_community_degree_sums_even(
         com_degrees = community_degrees_data[
             community_degrees_indptr[com] : community_degrees_indptr[com + 1]
         ]
-        if np.sum(com_degrees.astype(np.uint64)) % 2 == 0:
+        if np.sum(com_degrees) % 2 == 0:
             continue
         indices_of_max_degree = np.where(com_degrees == np.max(com_degrees))[0]
         decrease_index = indices_of_max_degree[
@@ -55,18 +57,18 @@ def make_community_degree_sums_even(
 
 
 def split_degrees(
-    degrees: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
     membership_matrix: sp.csr_array,
     xi: float,
     rng: Generator,
-) -> (sp.csr_array, NDArray[np.uint32]):
+) -> (sp.csr_array, NDArray[np.integer[Any]]):
     """Split degrees into community degrees and background degrees. The fraction of
     degree in the background is, on expectation, xi. Community degrees will be split
     evenly among communities if the nodes belongs to more than one.
 
     Parameters
     ----------
-    degrees: NDArray
+    degrees: NDArray[np.integer[Any]]
         Array of degrees.
 
     membership_matrix: sp.csr_array
@@ -86,14 +88,14 @@ def split_degrees(
         is the degree of node j in community i. Has the same non-zero entries as the
         membership_matrix.
 
-    background_degrees: NDArray[np.uint32]
+    background_degrees: NDArray[np.integer[Any]]
         Array for the degree of each node in the background graph.
     """
     background_degrees = degrees * xi
     background_degrees += rng.uniform(size=len(degrees))
-    background_degrees = background_degrees.astype(np.uint32)
+    background_degrees = background_degrees.astype(degrees.dtype)
 
-    community_degrees = membership_matrix.copy().astype(np.uint32)
+    community_degrees = membership_matrix.copy().astype(degrees.dtype)
     community_degrees = community_degrees.tocsc()
     _split_community_degree(
         degrees,
@@ -114,11 +116,11 @@ def split_degrees(
 
 
 def _assign_outlier_degrees(
-    degrees: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
     outlier_threshold: float,
     n_outliers: int,
     rng: Generator,
-) -> (NDArray[np.uint32], NDArray[np.uint32]):
+) -> (NDArray[np.integer[Any]], NDArray[np.integer[Any]]):
     available_indices = np.where(degrees < outlier_threshold)[0]
     if len(available_indices) > n_outliers:
         chosen_indices = rng.choice(available_indices, size=n_outliers, replace=False)
@@ -134,12 +136,12 @@ def _assign_outlier_degrees(
 
 
 def _assign_degrees(
-    degrees: NDArray[np.uint32],
-    n_coms: NDArray,
+    degrees: NDArray[np.integer[Any]],
+    n_coms: NDArray[np.integer[Any]],
     thresholds: NDArray[np.floating],
     rng: Generator,
     alpha: float = 0.0,
-) -> NDArray[np.uint32]:
+) -> NDArray[np.integer[Any]]:
     assigned_degrees = np.empty_like(degrees)
     is_open_mask = np.ones_like(assigned_degrees, dtype=np.bool)
     n_coms_exp_alpha = n_coms.astype(np.float64) ** alpha
@@ -217,8 +219,8 @@ def _assign_degrees(
 
 
 def _assign_degrees_with_alpha_search(
-    degrees: NDArray[np.uint32],
-    n_coms: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
+    n_coms: NDArray[np.integer[Any]],
     thresholds: NDArray[np.floating],
     rng: Generator,
     rho: float,
@@ -286,7 +288,7 @@ def _assign_degrees_with_alpha_search(
 
 
 def assign_degrees(
-    degrees: NDArray[np.uint32],
+    degrees: NDArray[np.integer[Any]],
     membership_matrix: sp.csr_array,
     xi: float,
     rng: Generator,
@@ -295,7 +297,7 @@ def assign_degrees(
     alpha_min: float = -60,
     alpha_max: float = 60,
     alpha_iters: int = 10,
-) -> NDArray[np.uint32]:
+) -> NDArray[np.integer[Any]]:
     """Assign degrees to nodes.
 
     Parameters
@@ -343,13 +345,10 @@ def assign_degrees(
     if len(unique_n_coms) == 1 or (len(unique_n_coms) == 2 and 0 in unique_n_coms):
         rho = 0.0
 
-    community_sizes = membership_matrix.sum(axis=1).astype(
-        np.uint32
-    )  # size of each community
+    community_sizes = membership_matrix.sum(axis=1)  # size of each community
 
     community_size_matrix = (
-        sp.diags_array(community_sizes, format="csr", dtype=np.uint32)
-        @ membership_matrix
+        sp.diags_array(community_sizes, format="csr", dtype=None) @ membership_matrix
     )
     min_com_sizes = community_size_matrix.min(axis=0, explicit=True).todense()
     # minimum community size for each node

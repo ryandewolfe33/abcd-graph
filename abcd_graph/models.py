@@ -11,24 +11,24 @@ from numpy.typing import NDArray
 class Model(Protocol):
     def __call__(
         self,
-        node_ids: NDArray[np.uint32],
-        degrees: NDArray[np.uint32],
+        node_ids: NDArray[np.integer[Any]],
+        degrees: NDArray[np.integer[Any]],
         rng: Generator,
-        out: NDArray[np.uint32] | None = None,
-    ) -> NDArray[np.uint32]: ...
+        out: NDArray[np.integer[Any]] | None = None,
+    ) -> NDArray[np.integer[Any]]: ...
 
 
 def chunglu_model(
-    node_ids: NDArray[np.uint32],
+    node_ids: NDArray[np.integer[Any]],
     degrees: NDArray[np.integer[Any]],
     rng: Generator,
-    out: NDArray[np.uint32] | None = None,
-) -> NDArray[np.uint32]:
+    out: NDArray[np.integer[Any]] | None = None,
+) -> NDArray[np.integer[Any]]:
     """Sample a random graph with, on expectation, the given degree sequence.
 
     Parameters
     ----------
-    node_ids: NDArray[np.uint32]
+    node_ids: NDArray[np.integer[Any]]
         List of node_ids for the graph. The returned edge list will contain each
         node_id equal to it's degree
 
@@ -38,7 +38,7 @@ def chunglu_model(
     rng: Generator
         numpy.random.Generator object used for randomness.
 
-    out: NDArray[np.uint32] | None (default=None)
+    out: NDArray[np.integer[Any]] | None (default=None)
         If passed, write output into this array inplace. Can be passed as a view of a larger array.
     """
     sum_degrees = np.sum(degrees)
@@ -51,16 +51,16 @@ def chunglu_model(
 
 @njit(nogil=True)
 def configuration_model(
-    node_ids: NDArray[np.uint32],
-    degrees: NDArray[np.uint32],
+    node_ids: NDArray[np.integer[Any]],
+    degrees: NDArray[np.integer[Any]],
     rng: Generator,
-    out: NDArray[np.uint32] | None = None,
-) -> NDArray[np.uint32]:
+    out: NDArray[np.integer[Any]] | None = None,
+) -> NDArray[np.integer[Any]]:
     """Sample a random graph with the given degree sequence.
 
     Parameters
     ----------
-    node_ids: NDArray[np.uint32]
+    node_ids: NDArray[np.integer[Any]]
         List of node_ids for the graph. The returned edge list will contain each
         node_id equal to it's degree
 
@@ -70,12 +70,12 @@ def configuration_model(
     rng: Generator
         numpy.random.Generator object used for randomness.
 
-    out: NDArray[np.uint32] | None (default=None)
+    out: NDArray[np.integer[Any]] | None (default=None)
         If passed, write output into this array inplace. Can be passed as a view of a larger array.
     """
     n_stubs = np.sum(degrees)
     if out is None:
-        out = np.empty((n_stubs // 2, 2), dtype=np.uint32)
+        out = np.empty((n_stubs // 2, 2), dtype=node_ids.dtype)
     else:
         assert out.shape == (n_stubs // 2, 2)
 

@@ -39,7 +39,7 @@ def make_primary_community_sizes(
 
 def make_overlapping_communities(
     n: int,
-    community_sizes: NDArray[np.uint32],
+    community_sizes: NDArray[np.integer[Any]],
     dimension: int,
     rng: Generator,
 ) -> sp.csr_array:
@@ -51,13 +51,11 @@ def make_overlapping_communities(
     radii = rng.random(size=(n, 1), dtype=np.float32) ** (1.0 / dimension)
     points = radii * direction
 
-    # TODO pynndescent with masked query
-    # for now brute force
     primary_communities = []
     has_primary = np.zeros(n, dtype=np.bool)
     norms = np.linalg.norm(points, axis=1)
     for size in primary_community_sizes:
-        available_ids = np.where(~has_primary)[0].astype(np.uint32)
+        available_ids = np.where(~has_primary)[0]
         seed = np.argmax(norms[available_ids])
         dist_from_seed = np.linalg.norm(points[available_ids] - seed, axis=1)
         community_ids = available_ids[np.argsort(dist_from_seed)[:size]]
@@ -66,18 +64,16 @@ def make_overlapping_communities(
 
     # Expand primary communities to full size
     communities = []
-    for primary_members, final_size in zip(
-        primary_communities, community_sizes, strict=True
-    ):
+    for primary_members, final_size in zip(primary_communities, community_sizes):
         n_new = final_size - len(primary_members)
-        non_members = np.setdiff1d(np.arange(n), primary_members).astype(np.uint32)
+        non_members = np.setdiff1d(np.arange(n), primary_members)
         community_mean = np.mean(points[primary_members], axis=0)
         dist_to_mean = np.linalg.norm(points[non_members] - community_mean, axis=1)
         new_members = non_members[np.argsort(dist_to_mean)[:n_new]]
         communities.append(np.concatenate((primary_members, new_members)))
 
-    indptr = np.arange(len(community_sizes) + 1, dtype=np.uint64)
-    indices = np.empty(np.sum(community_sizes), dtype=np.uint32)
+    indptr = np.arange(len(community_sizes) + 1)
+    indices = np.empty(np.sum(community_sizes), dtype=indptr.dtype)
     next_indptr = 0
     for i, members in enumerate(communities):
         indptr[i] = next_indptr
@@ -86,7 +82,7 @@ def make_overlapping_communities(
     indptr[-1] = next_indptr
     data = np.ones_like(indices, dtype=np.bool)
     membership_array = sp.csr_array(
-        (data, indices, indptr), shape=(len(community_sizes), n)
+        (data, indices, indptr), shape=(len(community_sizes), n), dtype=np.bool
     )
     return membership_array
 

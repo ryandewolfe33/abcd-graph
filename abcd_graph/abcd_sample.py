@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import scipy.sparse as sp
 from numba import njit
@@ -7,9 +9,9 @@ from scipy.optimize import minimize_scalar
 
 @njit
 def count_intra_community_edges(
-    edges: NDArray[np.uint32],
-    indptr: NDArray[np.uint64],
-    indices: NDArray[np.uint32],
+    edges: NDArray[np.integer[Any]],
+    indptr: NDArray[np.int32] | NDArray[np.int64],
+    indices: NDArray[np.int32] | NDArray[np.int64],
 ):
     m_intra_community = 0
     for i in range(edges.shape[0]):
@@ -31,7 +33,7 @@ def icdf(points: ArrayLike, sequence: ArrayLike, weights=None) -> NDArray[np.flo
 
 
 def fit_powerlaw_exponent(
-    samples: NDArray[np.uint32],
+    samples: NDArray[np.integer[Any]],
 ):
     """Find the parameters of a discrete truncated power-law
     distribution for the given samples via maximum-likelihood.
@@ -103,17 +105,18 @@ class ABCDSample:
         edges = np.asarray(edges)
         if not np.issubdtype(edges.dtype, np.integer):
             _, edges = np.unique(edges, return_inverse=True)
+            edges = edges.astype(np.min_scaler_type(np.max(edges)))
         self.edges = edges
+
         if sp.issparse(communities):
-            self.membership_matrix = sp.csr_array(communities)
+            self.membership_matrix = sp.csr_array(communities, dtype=np.bool)
         else:
             communities = np.asarray(communities)
             if communities.ndim == 2:
                 self.membership_matrix = sp.csr_array(communities, dtype=np.bool)
             elif communities.ndim == 1 and np.issubdtype(communities.dtype, np.integer):
-                communities = communities.astype(np.int64)
                 n = len(communities)
-                node_ids = np.arange(n, dtype=np.int64)
+                node_ids = np.arange(n, dtype=communities.dtype)
                 membership = np.vstack([communities, node_ids])
                 membership = membership[:, membership[0] >= 0]  # Drop outliers
                 membership_matrix = sp.coo_array(
@@ -123,7 +126,8 @@ class ABCDSample:
                 self.membership_matrix = membership_matrix.tocsr()
             else:
                 raise ValueError(
-                    "Got an unknown format for communities. Must be a sparse or dense membership matrix or a 1-d array of community ids."
+                    """Got an unknown format for communities. Must be a sparse or dense
+                    membership matrix or a 1-d array of community ids."""
                 )
 
     @property
@@ -207,10 +211,8 @@ class ABCDSample:
         -------
         Array[int]
         """
-        degrees = np.zeros(self.n, dtype=np.uint32)
         node, degree = np.unique_counts(self.edges)
-        degrees[node] = degree
-        return degrees
+        return degree[node]
 
     @property
     def min_degree(self) -> int:
