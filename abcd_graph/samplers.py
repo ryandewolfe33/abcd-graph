@@ -1,7 +1,9 @@
+from typing import Any
+
 import numpy as np
 from numba import njit
 from numpy.random import Generator
-from numpy.typing import NDArray
+from numpy.typing import DTypeLike, NDArray
 
 
 def sample_degrees(
@@ -10,8 +12,10 @@ def sample_degrees(
     min_degree: int,
     max_degree: int,
     rng: Generator,
-):
-    options = np.arange(min_degree, max_degree + 1, dtype=np.uint32)
+    dtype: DTypeLike | None = None,
+) -> NDArray[np.integer[Any]]:
+    dtype = dtype if dtype is not None else np.min_scalar_type(n)
+    options = np.arange(min_degree, max_degree + 1, dtype=dtype)
     probs = options.astype(np.float32) ** -degree_exponent
     probs /= np.sum(probs)
     degrees = rng.choice(options, p=probs, size=n)
@@ -24,14 +28,14 @@ def sample_degrees(
 
 @njit
 def _sample_community_sizes(
-    available_sizes: NDArray[np.uint32],
-    prob_cumsum: NDArray[np.float32],
+    available_sizes: NDArray[np.integer[Any]],
+    probs: NDArray[np.float32],
     target_sum: float,
     rng: Generator,
 ):
     max_n_communities = int(np.ceil(target_sum / available_sizes[0]))
-    community_sizes = np.empty(max_n_communities, dtype=np.uint32)
-
+    community_sizes = np.empty(max_n_communities, dtype=available_sizes.dtype)
+    prob_cumsum = np.cumsum(probs)
     next_id = 0
     sizes_sum = 0
     for i in range(len(community_sizes)):
@@ -44,11 +48,11 @@ def _sample_community_sizes(
         if sizes_sum > target_sum - 1:
             break
 
-    return community_sizes[:next_id]
+    return community_sizes[:next_id].copy()  # Copy to free memory
 
 
 def fix_community_sizes(
-    community_sizes: NDArray[np.uint32],
+    community_sizes: NDArray[np.integer[Any]],
     target_sum: float,
     min_community_size: int,
     max_community_size: int,
@@ -87,16 +91,17 @@ def sample_community_sizes(
     max_community_size: int,
     eta: float,
     rng: Generator,
-):
+    dtype: DTypeLike | None = None,
+) -> NDArray[np.integer[Any]]:
+    dtype = dtype if dtype is not None else np.min_scalar_type(n)
     target_sum = n * eta
-    options = np.arange(min_community_size, max_community_size + 1, dtype=np.uint32)
+    options = np.arange(min_community_size, max_community_size + 1, dtype=dtype)
     probs = options.astype(np.float32) ** -community_size_exponent
     probs /= np.sum(probs)
-    prob_cumsum = np.cumsum(probs)
 
     community_sizes = _sample_community_sizes(
         options,
-        prob_cumsum,
+        probs,
         target_sum,
         rng,
     )
