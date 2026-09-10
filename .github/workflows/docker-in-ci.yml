@@ -22,7 +22,7 @@ jobs:
           docker image inspect abcd-graph
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.31.0
+        uses: aquasecurity/setup-trivy@v1
         with:
           image-ref: 'abcd-graph'
           format: 'table'
@@ -52,7 +52,7 @@ jobs:
           docker image inspect abcd-graph-full
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.31.0
+        uses: aquasecurity/setup-trivy@v1
         with:
           image-ref: 'abcd-graph-full'
           format: 'table'
