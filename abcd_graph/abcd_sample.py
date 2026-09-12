@@ -3,6 +3,7 @@ from typing import Any
 import numpy as np
 import scipy.sparse as sp
 from numba import njit
+from numba.typed import List
 from numpy.typing import ArrayLike, NDArray
 from scipy.optimize import minimize_scalar
 
@@ -13,12 +14,14 @@ def count_intra_community_edges(
     indptr: NDArray[np.int32] | NDArray[np.int64],
     indices: NDArray[np.int32] | NDArray[np.int64],
 ):
+    community_sets = List()
+    for i in range(len(indptr) - 1):
+        communities = set(indices[indptr[i] : indptr[i + 1]])
+        community_sets.append(communities)
     m_intra_community = 0
     for i in range(edges.shape[0]):
         u, v = edges[i]
-        u_coms = indices[indptr[u] : indptr[u + 1]]
-        v_coms = indices[indptr[v] : indptr[v + 1]]
-        m_intra_community += int(np.any(np.isin(u_coms, v_coms)))
+        m_intra_community += 1 - community_sets[u].isdisjoint(community_sets[v])
     return m_intra_community
 
 
@@ -151,7 +154,7 @@ class ABCDSample:
         return self.edges.shape[0]
 
     @property
-    def xi(self) -> float:
+    def mu(self) -> float:
         """The proportion of inter-community edges.
 
         Returns
@@ -165,6 +168,24 @@ class ABCDSample:
             membership_csc.indices,
         )
         return 1 - (m_intra_community / self.m)
+
+    @property
+    def xi(self) -> float:
+        """Estimate xi using the proportion of inter-community edges (mu)
+        and the volume of the communities. If there are overlaps, the
+        computed value will be a slight overestimate due to double counting
+        pairs in the overlaps.
+
+        Returns
+        -------
+        float
+        """
+        total_pairs = self.n * (self.n - 1) / 2
+        community_sizes = self.community_size_sequence
+        community_pairs = np.sum(community_sizes * (community_sizes - 1) / 2)
+        inter_community_proportion = 1 - community_pairs / total_pairs
+        xi = self.mu / inter_community_proportion
+        return min(xi, 1.0)  # Estimated value might exceed 1
 
     @property
     def outliers(self) -> int:

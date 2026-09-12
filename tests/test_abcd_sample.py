@@ -14,18 +14,21 @@ def sample():
     return sample
 
 
+def test_mu(sample):
+    mu = sample.mu
+    assert mu == 0.25
+
+
 def test_xi(sample):
     xi = sample.xi
-    assert xi == 0.25
+    assert xi == 0.4166666666666667
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning:powerlaw*")
 def test_degree_exponent(sample):
     exponent = sample.degree_exponent
     assert exponent > 0
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning:powerlaw*")
 def test_community_size_exponent(sample):
     exponent = sample.community_size_exponent
     assert exponent > 0
