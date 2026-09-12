@@ -7,7 +7,7 @@ RUN apk add --no-cache \
     libffi-dev \
     build-base \
     linux-headers \
-    libuuid
+    libuuid>=2.42.3-r1
 
 # Install uv and upgrade pip/setuptools
 RUN pip install --upgrade pip setuptools && pip install uv
