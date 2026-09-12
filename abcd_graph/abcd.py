@@ -508,6 +508,10 @@ class ABCD:
         end = perf_counter()
         self.logger_.info(f"Finished in {format_duration(end - start)}.")
 
+        self.logger_.info(
+            f"Background degree proportion (xi): {np.sum(background_degrees) / (community_degrees.sum() + np.sum(background_degrees)):.3f}"
+        )
+
         if self.model == "configuration":
             model_func = configuration_model
         elif self.model == "chung-lu":
