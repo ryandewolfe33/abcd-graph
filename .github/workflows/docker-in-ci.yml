@@ -2,6 +2,8 @@ name: docker
 
 on:
   pull_request:
+    branches:
+        - main
   push:
     branches:
       - main
@@ -11,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build docker basic image
         run: |
-          docker build -t abcd-graph .
+          docker build --pull -t abcd-graph .
 
       - name: Inspect basic docker image
         run: |
@@ -41,11 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build docker full image
         run: |
-          docker build -t abcd-graph-full --build-arg INSTALL_TYPE=all .
+          docker build --pull -t abcd-graph-full --build-arg INSTALL_TYPE=all .
 
       - name: Inspect full docker image
         run: |
