@@ -56,6 +56,7 @@ docs = [
     "scikit-network>=0.33.5",
     "partition-sknetwork",
     "egosplit-sknetwork",
+    "fstar",
 ]
 
 [project.urls]
@@ -64,6 +65,9 @@ Repository = "https://github.com/AleksanderWWW/abcd-graph"
 
 [tool.hatch.build.targets.wheel]
 packages = ["abcd_graph"]
+
+[tool.uv.sources]
+fstar = { git = "https://github.com/ryandewolfe33/fstar" }
 
 [tool.pytest.ini_options]
 pythonpath = [
