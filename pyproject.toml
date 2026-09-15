@@ -28,10 +28,16 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "numba>=0.66.0",
-    "numpy>=2.0.0",
+    "numpy>=2.1.0",
     "scipy>=1.18.0",
     "typing-extensions>=4.10.0",
     "tqdm>=4.0.0",
+]
+
+[project.optional-dependencies]
+all = [
+    "igraph>=1.0.0",
+    "networkx>=3.6.1",
 ]
 
 [dependency-groups]
@@ -49,13 +55,14 @@ docs = [
     "numpydoc",
     "pandocfilters",
     "sphinx-rtd-theme",
-    "networkx",
+    "networkx>=3.6.1",
     "partition-networkx",
-    "igraph",
+    "igraph>=1.0.0",
     "partition-igraph",
     "scikit-network>=0.33.5",
-    "partition-sknetwork",
-    "egosplit-sknetwork",
+    "partition-sknetwork>=0.0.4",
+    "egosplit-sknetwork>=0.0.4",
+    "fstar",
 ]
 
 [project.urls]
@@ -64,6 +71,9 @@ Repository = "https://github.com/AleksanderWWW/abcd-graph"
 
 [tool.hatch.build.targets.wheel]
 packages = ["abcd_graph"]
+
+[tool.uv.sources]
+fstar = { git = "https://github.com/ryandewolfe33/fstar" }
 
 [tool.pytest.ini_options]
 pythonpath = [
