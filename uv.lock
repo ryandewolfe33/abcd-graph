@@ -14,6 +14,12 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 
+[package.optional-dependencies]
+all = [
+    { name = "igraph" },
+    { name = "networkx" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "prek" },
@@ -41,12 +47,15 @@ docs = [
 
 [package.metadata]
 requires-dist = [
+    { name = "igraph", marker = "extra == 'all'", specifier = ">=1.0.0" },
+    { name = "networkx", marker = "extra == 'all'", specifier = ">=3.6.1" },
     { name = "numba", specifier = ">=0.66.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "scipy", specifier = ">=1.18.0" },
     { name = "tqdm", specifier = ">=4.0.0" },
     { name = "typing-extensions", specifier = ">=4.10.0" },
 ]
+provides-extras = ["all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -56,19 +65,19 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.0.0" },
 ]
 docs = [
-    { name = "egosplit-sknetwork" },
+    { name = "egosplit-sknetwork", specifier = ">=0.0.4" },
     { name = "fstar", git = "https://github.com/ryandewolfe33/fstar" },
-    { name = "igraph" },
+    { name = "igraph", specifier = ">=1.0.0" },
     { name = "ipykernel" },
     { name = "jupyterlab-pygments", specifier = ">=0.1.1" },
     { name = "matplotlib" },
     { name = "nbsphinx" },
-    { name = "networkx" },
+    { name = "networkx", specifier = ">=3.6.1" },
     { name = "numpydoc" },
     { name = "pandocfilters" },
     { name = "partition-igraph" },
     { name = "partition-networkx" },
-    { name = "partition-sknetwork" },
+    { name = "partition-sknetwork", specifier = ">=0.0.4" },
     { name = "scikit-network", specifier = ">=0.33.5" },
     { name = "sphinx-rtd-theme" },
 ]
