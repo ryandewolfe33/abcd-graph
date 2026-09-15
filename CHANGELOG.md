@@ -1,16 +1,32 @@
 ## abcd-graph 0.5.0-beta (unreleased)
+- Complete rewrite and file restructure to simplify and increase speed.
+
+### Breaking Changes
+- Main class ABCD stores parameters, and has a .sample() method
+- ABCD.sample() returns an ABCDSample object that stores the graph and community data
+- ABCD parameter name changes (gamma -> degree_exponent, beta -> community_size_exponent)
+- Raise warning instead of error when powerlaw exponents are outside the expected ranges
+- Removed callbacks
+- Removed visualizer
+- removed mypy from ci (not compatible with numba)
+- removed [igraph], [networkx], [scipy], [matplotlib] optional dependencies
+- moved dev and docs dependencies to uv's dependency-groups
+- minimum python version bumped to 3.12
+- minimum numpy version bumped to 2.1
 
 ### Features
-- Complete rewrite and file restructure to simplify and increase speed.
-- Main class ABCD stores parameters, sample and ABCD graph with the .sample() method
-- ABCD.sample() returns and ABCDSample object that store the graph and community data
-- ABCD has a .fit(ABCDSample) method to fit the ABCD parameters to the empirical parameters observed in the sample.
-- readthedocs style documentation
+- Added overlap capabilities via parameters eta and rho
+- ABCD has a .fit(ABCDSample) method to fit the ABCD parameters to the empirical parameters observed in the sample ([fork/#5](https://github.com/ryandewolfe33/abcd-graph/pull/5))
 
 ### Enhancements
+- Much faster sampling
 - More comprehensive testing
-- Run benchmarks in CI
-- Migrate all workflows to uv
+- readthedocs style documentation ([fork/#7](https://github.com/ryandewolfe33/abcd-graph/pull/7))
+- Run benchmarks in CI ([fork/#8](https://github.com/ryandewolfe33/abcd-graph/pull/8))
+- Migrate all workflows to uv ([fork/#8](https://github.com/ryandewolfe33/abcd-graph/pull/8))
+- Run pre-commit workflow with prek
+- Replaced flake8 with ruff for linting
+- Default max_degree and max_community_size grows with n
 
 
 ## abcd-graph 0.4.1
