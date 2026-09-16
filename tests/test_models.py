@@ -129,6 +129,22 @@ def test_rewire_many():
     assert n_good_edges == edges.shape[0]
 
 
+def test_rewire_is_idempotent():
+    # idempotent: applying more than once is the same as applying once
+    # i.e. further rewires do nothing.
+    rng = np.random.default_rng(seed=1)
+    edges = np.array(
+        [[0, 0], [0, 1], [0, 1], [2, 3], [2, 3], [3, 3], [4, 5], [5, 6]],
+        dtype=np.uint32,
+    )
+
+    rewire(edges, get_edge_type(edges), rng)
+    first_rewire = edges.copy()
+    rewire(edges, get_edge_type(edges), rng)
+
+    np.testing.assert_equal(first_rewire, edges)
+
+
 def test_rewire_failure():
     rng = np.random.default_rng(seed=1)
     edges = np.array([[0, 0], [0, 1]], dtype=np.uint32)

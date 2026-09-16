@@ -106,7 +106,7 @@ def configuration_model(
 
 
 @njit(inline="always")
-def make_edge_tuple(edge: NDArray[np.integer[Any]]) -> UniTuple(np.integer[Any], 2):
+def make_edge_tuple(edge) -> UniTuple(np.integer[Any], 2):
     high, low = edge[0], edge[1]
     if high < low:
         high, low = low, high
@@ -120,14 +120,16 @@ def swap(
     rng: Generator,
 ) -> (UniTuple(np.integer[Any], 2), UniTuple(np.integer[Any], 2)):
     if rng.uniform() > 0.5:
-        return (edge1[0], edge2[0]), (edge2[0], edge1[0])
-    return (edge1[0], edge2[1]), (edge2[1], edge1[0])
+        return make_edge_tuple((edge1[0], edge2[0])), make_edge_tuple(
+            (edge2[0], edge1[0])
+        )
+    return make_edge_tuple((edge1[0], edge2[1])), make_edge_tuple((edge1[1], edge2[0]))
 
 
 @njit(inline="always")
 def is_bad_swap(
-    edge1: NDArray[np.integer[Any]],
-    edge2: NDArray[np.integer[Any]],
+    edge1: UniTuple(np.integer[Any], 2),
+    edge2: UniTuple(np.integer[Any], 2),
     good_edges: Set[UniTuple(np.integer[Any], 2)],
 ) -> bool:
     if edge1[0] == edge1[1] or edge2[0] == edge2[1]:
@@ -149,6 +151,7 @@ def rewire(
     edge_type: UniTuple(np.integer[Any], 2),
     rng: Generator,
     max_swap_attempts_per_bad_edge: int = 5,
+    print_info: bool = False,
 ) -> int:
     """Perform inplace edge swaps to resolve loops and multi-edges.
 
@@ -189,6 +192,11 @@ def rewire(
     # If the swap would cause a collision, move bad edge to the back of the
     # queue. Repeat until the Queue is empty or we give up.
 
+    if print_info:
+        print(len(bad_queue), "bad edges")
+        # print(good_edges)
+        # print(bad_queue)
+
     # Store bad edges in the indices 0:queue_len and keep at the front
     # of the list
     next_index = len(bad_queue) - 1
@@ -200,6 +208,16 @@ def rewire(
 
         next_index = (next_index + 1) % queue_len
         bad_edge = bad_queue[next_index]
+
+        # Check if edge is still bad. Conflicting edge may have been switched.
+        if bad_edge[0] != bad_edge[1] and bad_edge not in good_edges:
+            edges[n_good_edges] = bad_edge
+            good_edges.add(bad_edge)
+            n_good_edges += 1
+            bad_queue[next_index] = bad_queue[queue_len - 1]
+            queue_len -= 1
+            continue
+
         choose_from_good_edges = rng.uniform() < n_good_edges / (
             n_good_edges + queue_len - 1
         )  # Always True if queue_len == 1
@@ -207,7 +225,11 @@ def rewire(
             swap_index = rng.integers(0, n_good_edges)
             swap_candidate_edge = make_edge_tuple(edges[swap_index])
             new_edge1, new_edge2 = swap(bad_edge, swap_candidate_edge, rng)
+            # if print_info:
+            #     print("Try swapping", bad_edge, swap_candidate_edge, "to", new_edge1, new_edge2)
             if not is_bad_swap(new_edge1, new_edge2, good_edges):
+                # if print_info:
+                #     print("Okay")
                 edges[swap_index] = new_edge1
                 edges[n_good_edges] = new_edge2
                 n_good_edges += 1
@@ -221,7 +243,11 @@ def rewire(
             swap_index = (next_index + swap_offset) % queue_len
             swap_candidate_edge = bad_queue[swap_index]
             new_edge1, new_edge2 = swap(bad_edge, swap_candidate_edge, rng)
+            # if print_info:
+            #     print("Try swapping", bad_edge, swap_candidate_edge, "to", new_edge1, new_edge2)
             if not is_bad_swap(new_edge1, new_edge2, good_edges):
+                # if print_info:
+                #     print("Okay")
                 edges[n_good_edges] = new_edge1
                 edges[n_good_edges + 1] = new_edge2
                 n_good_edges += 2
@@ -230,6 +256,12 @@ def rewire(
                 bad_queue[next_index] = bad_queue[queue_len - 1]
                 bad_queue[swap_index] = bad_queue[queue_len - 2]
                 queue_len -= 2
+
+    # if print_info:
+    #     print(edges)
+    #     print()
+    #     print()
+    #     print()
 
     # Write bad edges that failed to swap back into the edge list
     for i in range(queue_len):
