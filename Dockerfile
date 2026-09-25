@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     curl \
     libffi-dev \
     build-base \
+    cmake \
     linux-headers
 
 # Choose the type of installation (default - just the base package)
