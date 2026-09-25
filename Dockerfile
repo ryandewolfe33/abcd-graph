@@ -9,7 +9,7 @@ RUN apk add --no-cache --upgrade \
     curl \
     libffi-dev \
     build-base \
-    linux-headers \
+    linux-headers
 
 # Install uv and upgrade pip/setuptools
 RUN pip install --upgrade pip setuptools && pip install uv
