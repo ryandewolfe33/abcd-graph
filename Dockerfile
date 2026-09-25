@@ -20,8 +20,8 @@ ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
 # Install the project's dependencies using the lockfile and settings
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=build/uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=build/pyproject.toml \
     if [ "$INSTALL_TYPE" = "normal" ]; then \
          \
         uv sync --locked --no-install-project ; \
