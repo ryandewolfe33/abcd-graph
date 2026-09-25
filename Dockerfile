@@ -1,16 +1,10 @@
-FROM ghcr.io/astral-sh/uv:alpine3.23 AS build
-
-# Upgrade apk package repo
-RUN apk update && apk upgrade --no-cache
+FROM ghcr.io/astral-sh/uv:trixie-slim AS build
 
 # Install build tools + curl
-RUN apk add --no-cache \
-    bash \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libffi-dev \
-    build-base \
-    cmake \
-    linux-headers
+    build-essential
 
 # Choose the type of installation (default - just the base package)
 ARG INSTALL_TYPE=normal
@@ -53,7 +47,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY abcd_graph abcd_graph
 
 
-FROM ghcr.io/astral-sh/uv:python3.12-alpine3.23 AS runtime
+FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS runtime
 
 # Add a non-root user
 RUN addgroup -S abcd && adduser -S abcd -G abcd
