@@ -2,29 +2,20 @@ FROM ghcr.io/astral-sh/uv:trixie-slim AS build
 
 # Install build tools + curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
     libffi-dev \
-    build-essential
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Choose the type of installation (default - just the base package)
 ARG INSTALL_TYPE=normal
 
 WORKDIR /build
 
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
+# Keeps Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1
-
-# Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
-
-# Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy
-
-# Omit development dependencies
 ENV UV_NO_DEV=1
-
-# Ensure installed tools can be executed out of the box
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
 # Install the project's dependencies using the lockfile and settings
@@ -49,13 +40,13 @@ COPY abcd_graph abcd_graph
 
 FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS runtime
 
-# Add a non-root user
-RUN addgroup -S abcd && adduser -S abcd -G abcd
+# Add a non-root user (Debian syntax)
+RUN useradd -m -s /bin/bash abcd
 
 WORKDIR /home/abcd-graph
 
 # Copy the installed virtual environment from the build stage
-COPY --from=build /.venv /.venv
+COPY --from=build /build/.venv /.venv
 
 # Add a default shell
 SHELL ["/bin/sh", "-c"]
@@ -67,4 +58,4 @@ ENV PATH="/.venv/bin:$PATH"
 USER abcd
 
 # Default to python REPL
-ENTRYPOINT ["uv run python"]
+ENTRYPOINT ["python"]
