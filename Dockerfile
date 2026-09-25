@@ -51,7 +51,7 @@ COPY pyproject.toml README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
-COPY src src
+COPY abcd_graph abcd_graph
 
 
 FROM ghcr.io/astral-sh/uv:python3.12-alpine3.23 AS runtime
