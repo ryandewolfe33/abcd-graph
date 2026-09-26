@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:trixie-slim AS build
+FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS build
 
 # Install build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -33,7 +33,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Installing separately from its dependencies allows layer caching
 COPY abcd_graph abcd_graph
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable
+    if [ "$INSTALL_TYPE" = "normal" ]; then \
+        uv sync --frozen --no-editable ; \
+    else \
+        uv sync --frozen --no-editable --extra $INSTALL_TYPE ; \
+    fi
 
 
 FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS runtime

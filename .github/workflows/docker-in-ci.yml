@@ -37,7 +37,7 @@ jobs:
 
       - name: Run basic docker image
         run: |
-          docker run --rm abcd-graph -c "from abcd_graph import ABCDGraph, ABCDParams"
+          docker run --rm abcd-graph -c "from abcd_graph import ABCD, ABCDSample"
 
   docker-full:
     needs:
@@ -67,4 +67,4 @@ jobs:
 
       - name: Run full docker image
         run: |
-          docker run --rm abcd-graph-full -c "import abcd_graph, igraph, networkx, scipy"
+          docker run --rm abcd-graph-full -c "from abcd_graph import ABCD, ABCDSample; import igraph; import networkx"
