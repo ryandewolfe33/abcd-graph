@@ -50,7 +50,7 @@ requires-dist = [
     { name = "igraph", marker = "extra == 'all'", specifier = ">=1.0.0" },
     { name = "networkx", marker = "extra == 'all'", specifier = ">=3.6.1" },
     { name = "numba", specifier = ">=0.66.0" },
-    { name = "numpy", specifier = ">=2.0.0" },
+    { name = "numpy", specifier = ">=2.1.0" },
     { name = "scipy", specifier = ">=1.18.0" },
     { name = "tqdm", specifier = ">=4.0.0" },
     { name = "typing-extensions", specifier = ">=4.10.0" },
