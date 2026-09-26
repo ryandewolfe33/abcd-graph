@@ -41,10 +41,13 @@ FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS runtime
 # Add a non-root user (Debian syntax)
 RUN useradd -m -s /bin/bash abcd
 
-WORKDIR /home/abcd-graph
+WORKDIR /home/abcd
 
 # Copy the installed virtual environment from the build stage
-COPY --from=build /build/.venv /.venv
+COPY --from=build /build/.venv /home/abcd/.venv
+
+ENV PATH="/home/abcd/.venv/bin:$PATH"
+ENV PYTHONPATH="/home/abcd/.venv/lib/python3.12/site-packages"
 
 # Add a default shell
 SHELL ["/bin/sh", "-c"]
@@ -56,4 +59,4 @@ ENV PATH="/.venv/bin:$PATH"
 USER abcd
 
 # Default to python REPL
-ENTRYPOINT ["python"]
+ENTRYPOINT ["uv", "run", "--no-sync", "python"]
