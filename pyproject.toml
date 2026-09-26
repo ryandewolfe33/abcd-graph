@@ -72,6 +72,9 @@ Repository = "https://github.com/AleksanderWWW/abcd-graph"
 [tool.hatch.build.targets.wheel]
 packages = ["abcd_graph"]
 
+[tool.uv]
+exclude-newer = "14 days"
+
 [tool.uv.sources]
 fstar = { git = "https://github.com/ryandewolfe33/fstar" }
 
