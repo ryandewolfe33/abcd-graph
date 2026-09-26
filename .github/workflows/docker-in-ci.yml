@@ -34,6 +34,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          version: 'v0.74.0'
 
       - name: Run basic docker image
         run: |
@@ -64,6 +65,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          version: 'v0.74.0'
 
       - name: Run full docker image
         run: |
