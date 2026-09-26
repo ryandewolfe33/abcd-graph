@@ -48,15 +48,13 @@ COPY --from=build /build/.venv /home/abcd/.venv
 
 ENV PATH="/home/abcd/.venv/bin:$PATH"
 ENV PYTHONPATH="/home/abcd/.venv/lib/python3.12/site-packages"
+RUN chown -R abcd:abcd /home/abcd
 
 # Add a default shell
 SHELL ["/bin/sh", "-c"]
-
-# Set environment to use venv
-ENV PATH="/.venv/bin:$PATH"
 
 # Use non-root user
 USER abcd
 
 # Default to python REPL
-ENTRYPOINT ["uv", "run", "--no-sync", "python"]
+ENTRYPOINT ["python"]
