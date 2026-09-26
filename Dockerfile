@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Installing separately from its dependencies allows optimal layer caching
 COPY abcd_graph abcd_graph
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked
+    uv sync --locked --no-editable
 
 
 FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS runtime
