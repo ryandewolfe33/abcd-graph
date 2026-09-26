@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:trixie-slim AS build
 
-# Install build tools + curl
+# Install build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     build-essential \
@@ -29,8 +29,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         uv sync --locked --no-install-project --extra $INSTALL_TYPE ; \
     fi
 
-# Then, add the rest of the project source code and install it
-# Installing separately from its dependencies allows optimal layer caching
+# Add the rest of the project source code and install it
+# Installing separately from its dependencies allows layer caching
 COPY abcd_graph abcd_graph
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable
@@ -46,15 +46,11 @@ WORKDIR /home/abcd
 # Copy the installed virtual environment from the build stage
 COPY --from=build /build/.venv /home/abcd/.venv
 
+# Update paths to search the virtual environment binary directories
 ENV PATH="/home/abcd/.venv/bin:$PATH"
-ENV PYTHONPATH="/home/abcd/.venv/lib/python3.12/site-packages"
+ENV PYTHONPATH="/home/abcd"
+
 RUN chown -R abcd:abcd /home/abcd
-
-# Add a default shell
-SHELL ["/bin/sh", "-c"]
-
-# Use non-root user
 USER abcd
 
-# Default to python REPL
 ENTRYPOINT ["python"]
