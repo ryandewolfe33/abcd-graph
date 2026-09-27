@@ -125,6 +125,12 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
+[tool.ty.src]
+include = [
+    "abcd_graph",
+    "tests",
+]
+
 [tool.coverage.run]
 source = ["abcd_graph"]
 

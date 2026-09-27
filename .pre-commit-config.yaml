@@ -26,14 +26,11 @@ repos:
         args: [ --fix ]
       # Run the formatter.
       - id: ruff-format
-  - repo: local
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    # ty version.
+    rev: v0.0.84
     hooks:
-      - id: ty-check
-        name: Run ty type checker
-        entry: uv run ty check abcd_graph
-        language: system
-        types: [python]
-        pass_filenames: false
+      - id: ty
 
 default_language_version:
     python: python3.12
