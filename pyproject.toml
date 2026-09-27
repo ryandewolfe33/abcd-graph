@@ -129,6 +129,7 @@ ignore = [
 include = [
     "abcd_graph",
     "tests",
+    "benchmarks",
 ]
 
 [tool.coverage.run]
