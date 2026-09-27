@@ -103,7 +103,8 @@ def generate_graph(
         logger.info(
             f"Failed to rewire {graph.shape[0] - n_good_edges}, they will be removed."
         )
-        graph.resize((n_good_edges, 2), refcheck=False)
+        graph = np.resize(graph[:n_good_edges, :], (n_good_edges, graph.shape[1]))
+
     return graph
 
 
@@ -411,6 +412,16 @@ class ABCD:
             logger.addHandler(handler)
         return logger
 
+    def _get_max_degree(self) -> int:
+        if isinstance(self.max_degree, (int, np.integer)):
+            return int(self.max_degree)
+        return self.max_degree(self.n)
+
+    def _get_max_community_size(self) -> int:
+        if isinstance(self.max_community_size, (int, np.integer)):
+            return int(self.max_community_size)
+        return self.max_community_size(self.n)
+
     def sample(self) -> ABCDSample:
         sample_start = perf_counter()
 
@@ -420,7 +431,7 @@ class ABCD:
         if self.outliers < 1:
             n_outliers = int(self.n * self.outliers)
         else:
-            n_outliers = self.outliers
+            n_outliers = int(self.outliers)
 
         self.dtype_ = np.min_scalar_type(self.n)
 
@@ -429,16 +440,11 @@ class ABCD:
         else:
             self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
-            max_degree = (
-                self.max_degree(self.n)
-                if callable(self.max_degree)
-                else self.max_degree
-            )
             degree_sequence = sample_degrees(
                 self.n,
                 self.degree_exponent,
                 self.min_degree,
-                max_degree,
+                self._get_max_degree(),
                 self.rng,
                 self.dtype_,
             )
@@ -452,16 +458,11 @@ class ABCD:
         else:
             self.logger_.info("Generating Degree Sequence")
             start = perf_counter()
-            max_community_size = (
-                self.max_community_size(self.n)
-                if callable(self.max_community_size)
-                else self.max_community_size
-            )
             community_size_sequence = sample_community_sizes(
                 self.n - n_outliers,
                 self.community_size_exponent,
                 self.min_community_size,
-                max_community_size,
+                self._get_max_community_size(),
                 self.eta,
                 self.rng,
                 self.dtype_,
@@ -619,7 +620,7 @@ class ABCD:
         self._validate_params()
         if self.degree_sequence is not None:
             return icdf(points, self.degree_sequence)
-        values = np.arange(self.min_degree, self.max_degree + 1)
+        values = np.arange(self.min_degree, self._get_max_degree() + 1)
         weights = values**-self.degree_exponent
         return icdf(points, values, weights=weights)
 
@@ -641,6 +642,6 @@ class ABCD:
         self._validate_params()
         if self.community_size_sequence is not None:
             return icdf(points, self.community_size_sequence)
-        values = np.arange(self.min_community_size, self.max_community_size + 1)
+        values = np.arange(self.min_community_size, self._get_max_community_size() + 1)
         weights = values**-self.community_size_exponent
         return icdf(points, values, weights=weights)

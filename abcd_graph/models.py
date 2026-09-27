@@ -3,7 +3,7 @@ from typing import Any, Protocol
 import numpy as np
 from numba import from_dtype, njit
 from numba.typed import List, Set
-from numba.types import UniTuple
+from numba.types import UniTuple  # type: ignore
 from numpy.random import Generator
 from numpy.typing import NDArray
 
@@ -106,7 +106,7 @@ def configuration_model(
 
 
 @njit(inline="always")
-def make_edge_tuple(edge) -> UniTuple(np.integer[Any], 2):
+def make_edge_tuple(edge) -> tuple[int, int]:
     high, low = edge[0], edge[1]
     if high < low:
         high, low = low, high
@@ -115,10 +115,10 @@ def make_edge_tuple(edge) -> UniTuple(np.integer[Any], 2):
 
 @njit(inline="always")
 def swap(
-    edge1: UniTuple(np.integer[Any], 2),
-    edge2: UniTuple(np.integer[Any], 2),
+    edge1: tuple[int, int],
+    edge2: tuple[int, int],
     rng: Generator,
-) -> (UniTuple(np.integer[Any], 2), UniTuple(np.integer[Any], 2)):
+) -> tuple[tuple[int, int], tuple[int, int]]:
     if rng.uniform() > 0.5:
         return make_edge_tuple((edge1[0], edge2[0])), make_edge_tuple(
             (edge2[0], edge1[0])
@@ -128,9 +128,9 @@ def swap(
 
 @njit(inline="always")
 def is_bad_swap(
-    edge1: UniTuple(np.integer[Any], 2),
-    edge2: UniTuple(np.integer[Any], 2),
-    good_edges: Set[UniTuple(np.integer[Any], 2)],
+    edge1: tuple[int, int],
+    edge2: tuple[int, int],
+    good_edges: Set[tuple[int, int]],
 ) -> bool:
     if edge1[0] == edge1[1] or edge2[0] == edge2[1]:
         return True
@@ -141,14 +141,14 @@ def is_bad_swap(
     return False
 
 
-def get_edge_type(edges: NDArray[np.integer[Any]]) -> UniTuple(np.integer[Any], 2):
+def get_edge_type(edges: NDArray[np.integer[Any]]) -> tuple[int, int]:
     return UniTuple(from_dtype(edges.dtype), 2)
 
 
 @njit(nogil=True)
 def rewire(
     edges: NDArray[np.integer[Any]],
-    edge_type: UniTuple(np.integer[Any], 2),
+    edge_type: tuple[int, int],
     rng: Generator,
     max_swap_attempts_per_bad_edge: int = 5,
     print_info: bool = False,

@@ -26,6 +26,14 @@ repos:
         args: [ --fix ]
       # Run the formatter.
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: Run ty type checker
+        entry: uv run ty check abcd_graph
+        language: system
+        types: [python]
+        pass_filenames: false
 
 default_language_version:
     python: python3.12

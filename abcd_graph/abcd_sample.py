@@ -22,10 +22,12 @@ def count_intra_community_edges(
     return m_intra_community
 
 
-def icdf(points: ArrayLike, sequence: ArrayLike, weights=None) -> NDArray[np.floating]:
+def icdf(
+    points: ArrayLike, sequence: ArrayLike, weights: ArrayLike | None = None
+) -> NDArray[np.floating]:
     points = np.asarray(points)
     points = np.insert(points, 0, 0)
-    hist, bin_edges = np.histogram(sequence, bins=points, weights=weights)
+    hist, bin_edges = np.histogram(sequence, bins=points, weights=weights)  # type: ignore
     cdf = np.cumsum(hist).astype(np.float64)
     cdf /= cdf[-1]
     icdf = 1 - cdf
@@ -105,7 +107,7 @@ class ABCDSample:
         edges = np.asarray(edges)
         if not np.issubdtype(edges.dtype, np.integer):
             _, edges = np.unique(edges, return_inverse=True)
-            edges = edges.astype(np.min_scaler_type(np.max(edges)))
+            edges = edges.astype(np.min_scalar_type(np.max(edges)))
         self.edges = edges
 
         if sp.issparse(communities):
@@ -328,7 +330,7 @@ class ABCDSample:
         networkx.Graph
         """
         try:
-            import networkx as nx
+            import networkx as nx  # type: ignore
 
             g = nx.from_edgelist(self.edges)
             return g
@@ -346,7 +348,7 @@ class ABCDSample:
         igraph.Graph
         """
         try:
-            import igraph as ig
+            import igraph as ig  # type: ignore
 
             g = ig.Graph(n=self.n, edges=self.edges, directed=False)
             return g

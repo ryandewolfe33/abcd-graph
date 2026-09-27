@@ -61,7 +61,7 @@ def split_degrees(
     membership_matrix: sp.csr_array,
     xi: float,
     rng: Generator,
-) -> (sp.csr_array, NDArray[np.integer[Any]]):
+) -> tuple[sp.csr_array, NDArray[np.integer[Any]]]:
     """Split degrees into community degrees and background degrees. The fraction of
     degree in the background is, on expectation, xi. Community degrees will be split
     evenly among communities if the nodes belongs to more than one.
@@ -91,7 +91,7 @@ def split_degrees(
     background_degrees: NDArray[np.integer[Any]]
         Array for the degree of each node in the background graph.
     """
-    background_degrees = degrees * xi
+    background_degrees = degrees.astype(np.float64) * xi
     background_degrees += rng.uniform(size=len(degrees))
     background_degrees = background_degrees.astype(degrees.dtype)
 
@@ -120,7 +120,7 @@ def _assign_outlier_degrees(
     outlier_threshold: float,
     n_outliers: int,
     rng: Generator,
-) -> (NDArray[np.integer[Any]], NDArray[np.integer[Any]]):
+) -> tuple[NDArray[np.integer[Any]], NDArray[np.integer[Any]]]:
     available_indices = np.where(degrees < outlier_threshold)[0]
     if len(available_indices) > n_outliers:
         chosen_indices = rng.choice(available_indices, size=n_outliers, replace=False)
