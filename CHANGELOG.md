@@ -26,7 +26,9 @@
 - Migrate all workflows to uv ([fork/#8](https://github.com/ryandewolfe33/abcd-graph/pull/8))
 - Run pre-commit workflow with prek
 - Replaced flake8 with ruff for linting
+- Replaced mypy with ty for faster static type checking ([fork/#20](https://github.com/ryandewolfe33/abcd-graph/pull/20))
 - Default max_degree and max_community_size grows with n
+- Docker uses uv:python3.12-trixie-slim as base image for easier install ([fork/#19](https://github.com/ryandewolfe33/abcd-graph/pull/19))
 
 
 ## abcd-graph 0.4.1
