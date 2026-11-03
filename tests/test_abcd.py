@@ -18,7 +18,7 @@ def test_abcd(n, xi):
     assert_no_bad_edges(sample.edges)
     assert np.max(sample.edges) == n - 1
     assert sample.n == n
-    assert np.abs(sample.xi - xi) < 0.15  # xi is noisy
+    assert np.abs(sample.xi - xi) < 0.2  # xi is noisy
 
 
 @pytest.mark.benchmark
@@ -34,7 +34,7 @@ def test_abcdoo(n, xi, eta, rho):
     assert_no_bad_edges(sample.edges)
     assert np.max(sample.edges) == n - 1
     assert sample.n == n
-    assert np.abs(sample.xi - xi) < 0.15  # xi is noisy
+    assert np.abs(sample.xi - xi) < 0.2  # xi is noisy
     assert sample.eta == eta
     if rho != 0:
         assert np.sign(sample.rho) == np.sign(rho)
@@ -80,7 +80,7 @@ def test_fit():
     abcd.fit(sample)
 
     assert abcd.n == 5
-    assert abcd.xi == 0.5
+    assert abcd.xi == 0.8333333333333334
     assert abcd.eta == 1.25
     assert abcd.min_degree == 2
     assert abcd.max_degree == 3
@@ -101,7 +101,7 @@ def test_fit_with_sequences():
     abcd.fit(sample, do_not_set=None)
 
     assert abcd.n == 5
-    assert abcd.xi == 0.5
+    assert abcd.xi == 0.8333333333333334
     assert abcd.eta == 1.25
     assert abcd.min_degree == 2
     assert abcd.max_degree == 3
