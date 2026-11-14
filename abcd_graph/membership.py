@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 import scipy.sparse as sp
-from numba import njit, prange
+from numba import njit
 from numpy.random import Generator
 from numpy.typing import NDArray
 
@@ -38,7 +38,7 @@ def make_primary_community_sizes(
     return primary_community_sizes
 
 
-@njit(parallel=True, fastmath=True, cache=True)
+@njit(fastmath=True, cache=True)
 def assign_overlapping_communities_with_reference_layer(
     points: NDArray[np.float32],
     radii: NDArray[np.float32],
@@ -75,7 +75,7 @@ def assign_overlapping_communities_with_reference_layer(
         # (1b) Compute dists of all non-assigned points to seed
         # set those already assigned to np.inf so sorting
         # by closest to seed puts them last
-        for i in prange(n):  # ty: ignore[not-iterable]
+        for i in range(n):
             if has_primary[i]:
                 dists[i] = np.inf
             else:
@@ -100,7 +100,7 @@ def assign_overlapping_communities_with_reference_layer(
             # community to the mean
             in_current_com[:] = False
             in_current_com[primary_members] = True
-            for i in prange(n):  # ty: ignore[not-iterable]
+            for i in range(n):
                 if in_current_com[i]:
                     dists[i] = np.inf
                 else:
